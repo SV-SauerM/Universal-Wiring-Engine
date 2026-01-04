@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U W E - Universal Wiring Engine</title>
+    <style>
+        :root { --primary: #3498db; --secondary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #ecf0f1; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: var(--secondary); color: white; overflow: hidden; }
+        
+        #sidebar { width: 350px; padding: 20px; border-right: 2px solid #1a252f; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+        
+        .brand-container { margin-bottom: 5px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .brand-letter { font-size: 1.8em; font-weight: bold; color: var(--primary); display: inline-block; }
+        .brand-suffix { font-size: 0.9em; color: #bdc3c7; font-weight: normal; margin-right: 10px; }
+
+        .step { background: #34495e; padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); }
+        .help-text { font-size: 0.75em; color: #bdc3c7; margin-top: 8px; line-height: 1.4; }
+        
+        #main { flex-grow: 1; background: var(--light); display: flex; justify-content: center; align-items: center; overflow: auto; position: relative; }
+        canvas { background: white; cursor: crosshair; box-shadow: 0 0 20px rgba(0,0,0,0.5); max-width: 100%; max-height: 95vh; object-fit: contain; }
+
+        #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 999; }
+        #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 1100px; background: white; color: #333; padding: 25px; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.5); z-index: 1000; max-height: 90vh; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; color: #333; }
+        th { background: #f8f9fa; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        
+        .fill-btn { background: var(--primary); color: white; border: none; border-radius: 3px; padding: 2px 6px; font-size: 11px; cursor: pointer; float: right; margin-top: 2px; }
+        button { padding: 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        .btn-success { background: var(--success); color: white; width: 100%; }
+        .btn-danger { background: var(--danger); color: white; width: 100%; }
+        
+        .bundle-item { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85em; }
+        .bundle-info { display: flex; align-items: center; gap: 10px; }
+        .action-btn { padding: 5px 8px; font-size: 12px; background: #444; color: white; border-radius: 3px; cursor: pointer; border: none; }
+        .action-btn:hover { opacity: 0.8; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid white; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="brand-container">
+        <span class="brand-letter">U</span><span class="brand-suffix">niversal</span>
+        <span class="brand-letter">W</span><span class="brand-suffix">iring</span>
+        <span class="brand-letter">E</span><span class="brand-suffix">ngine</span>
+    </div>
+    
+    <div class="step" style="background: #27ae60; border-left-color: white;">
+        <strong>Projekt-Speicher</strong>
+        <div style="display:flex; gap:5px; margin-top:5px;">
+            <button onclick="saveProjectJSON()" style="background: white; color: #27ae60; flex:1; padding:8px;">Speichern</button>
+            <button onclick="document.getElementById('loadProject').click()" style="background: white; color: #27ae60; flex:1; padding:8px;">Laden</button>
+        </div>
+        <input type="file" id="loadProject" style="display:none" accept=".json" onchange="loadProjectJSON(event)">
+    </div>
+
+    <div class="step">
+        <strong>1. Bild laden</strong>
+        <input type="file" id="upload" accept="image/*">
+    </div>
+
+    <div class="step">
+        <strong>2. Maßstab</strong>
+        <input type="number" id="realLength" placeholder="Länge in mm" value="0">
+        <button class="btn-primary" onclick="setMode('scale')" id="btnScale">Maßstab festlegen</button>
+        <button class="btn-success" id="btnConfirmScale" onclick="confirmScale()" style="display:none; margin-top:10px;">Maßstab bestätigen ✓</button>
+    </div>
+
+    <div class="step">
+        <strong>3. Farbe & Messen</strong>
+        <input type="color" id="drawColor" value="#f39c12" style="height: 40px; width: 100%; cursor: pointer; border:none; border-radius:4px;">
+        <button class="btn-primary" onclick="setMode('measure')" id="btnMeasure" disabled style="background: var(--warning); margin-top:10px;">Kabelstrang zeichnen</button>
+        <div class="help-text">
+            <strong>Bedienung:</strong><br>
+            • Linksklick: Punkt setzen<br>
+            • Doppelklick: Strang abschließen
+        </div>
+    </div>
+
+    <div id="project-list">
+        <strong>Erfasste Stränge:</strong>
+        <div id="bundleContainer" style="margin-top:10px;"></div>
+    </div>
+
+    <button class="btn-success" onclick="exportWustec()">Wustec Export (.csv)</button>
+    <button class="btn-primary" onclick="exportVisual()" style="background: #8e44ad;">Bild & Legende Export</button>
+</div>
+
+<div id="main"><canvas id="canvas"></canvas></div>
+
+<div id="overlay"></div>
+<div id="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; margin-bottom:15px;">
+        <h3 id="modalHeaderTitle" style="margin:0">Kabelbaum Details</h3>
+        <span id="currentLengthDisplay" style="font-weight:bold; color:var(--success); font-size:1.2em;"></span>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div><label>Strang Name:</label><input type="text" id="bundleName"></div>
+        <div><label>Zuschlag Vorn (mm):</label><input type="number" id="plusStart" value="150"></div>
+        <div><label>Zuschlag Hinten (mm):</label><input type="number" id="plusEnd" value="150"></div>
+    </div>
+    <div style="background:#f8f9fa; padding:10px; border-radius:5px; margin-bottom:10px; display:flex; gap:10px; align-items:center;">
+        <label>Anzahl Drähte:</label>
+        <input type="number" id="wireCount" value="1" min="1" style="width:70px;">
+        <button onclick="updateWireTable()" style="padding:6px 12px; background:var(--secondary); color:white;">Tabelle erzeugen</button>
+    </div>
+    <table id="wireTable">
+        <thead>
+            <tr>
+                <th style="width:40px;">#</th>
+                <th>Typ <button class="fill-btn" onclick="autoFill('wire-type', false)">▼</button></th>
+                <th>Farbe <button class="fill-btn" onclick="autoFill('wire-color', false)">▼</button></th>
+                <th>mm² <button class="fill-btn" onclick="autoFill('wire-cross', false)">▼</button></th>
+                <th>Quelle <button class="fill-btn" onclick="autoFill('wire-label-s', true)">▼+</button></th>
+                <th>Ziel <button class="fill-btn" onclick="autoFill('wire-label-e', true)">▼+</button></th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+        <button onclick="closeModal()">Abbrechen</button>
+        <button class="btn-success" onclick="saveCableBundle()" style="width:220px;">Speichern</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let img = new Image(), mode = 'none', mmPerPixel = 0, currentPath = [], snapshot, allBundles = [], lastMeasuredLength = 0, mouseX = 0, mouseY = 0;
+    let originalImageSnapshot = null, editIndex = -1;
+
+    document.getElementById('upload').onchange = (e) => loadMainImage(e.target.files[0]);
+
+    function loadMainImage(file) {
+        const reader = new FileReader();
+        reader.onload = (f) => {
+            img.onload = () => {
+                canvas.width = img.width; canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
+                rebuildDrawing();
+            };
+            img.src = f.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function setMode(m) { mode = m; currentPath = []; }
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: (e.clientX - rect.left) * (canvas.width / rect.width), y: (e.clientY - rect.top) * (canvas.height / rect.height) };
+    }
+
+    canvas.onmousemove = (e) => {
+        const pos = getPos(e); mouseX = pos.x; mouseY = pos.y;
+        if (mode !== 'none' && currentPath.length > 0) redrawCanvas();
+    };
+
+    function redrawCanvas() {
+        ctx.putImageData(snapshot, 0, 0);
+        ctx.lineWidth = Math.max(4, canvas.width / 500);
+        ctx.strokeStyle = (mode === 'scale') ? 'red' : document.getElementById('drawColor').value;
+        if (currentPath.length > 0) {
+            ctx.beginPath(); ctx.moveTo(currentPath[0].x, currentPath[0].y);
+            currentPath.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.lineTo(mouseX, mouseY); ctx.stroke();
+        }
+    }
+
+    canvas.onclick = (e) => {
+        if (mode === 'none') return;
+        currentPath.push(getPos(e));
+        if (mode === 'scale' && currentPath.length === 2) {
+            document.getElementById('btnConfirmScale').style.display = 'block';
+            mode = 'none';
+        }
+    };
+
+    function confirmScale() {
+        const d = Math.sqrt(Math.pow(currentPath[1].x-currentPath[0].x,2)+Math.pow(currentPath[1].y-currentPath[0].y,2));
+        mmPerPixel = document.getElementById('realLength').value / d;
+        document.getElementById('btnMeasure').disabled = false;
+        document.getElementById('btnConfirmScale').style.display = 'none';
+        rebuildDrawing();
+    }
+
+    function rebuildDrawing() {
+        if(!originalImageSnapshot) return;
+        ctx.putImageData(originalImageSnapshot, 0, 0);
+        allBundles.forEach(b => {
+            ctx.strokeStyle = b.color;
+            ctx.lineWidth = Math.max(4, canvas.width / 500);
+            ctx.beginPath();
+            ctx.moveTo(b.path[0].x, b.path[0].y);
+            b.path.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.stroke();
+        });
+        snapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
+    }
+
+    canvas.ondblclick = () => {
+        if (mode === 'measure' && currentPath.length > 1) {
+            let px = 0;
+            for(let i=1; i<currentPath.length; i++) px += Math.sqrt(Math.pow(currentPath[i].x-currentPath[i-1].x,2)+Math.pow(currentPath[i].y-currentPath[i-1].y,2));
+            lastMeasuredLength = px * mmPerPixel;
+            editIndex = -1;
+            openModal();
+        }
+    };
+
+    function openModal() {
+        document.getElementById('modal').style.display = 'block';
+        document.getElementById('overlay').style.display = 'block';
+        if(editIndex === -1) {
+            document.getElementById('bundleName').value = "X" + (allBundles.length + 1);
+            updateWireTable();
+        } else {
+            const b = allBundles[editIndex];
+            document.getElementById('bundleName').value = b.name;
+            document.getElementById('plusStart').value = b.pS;
+            document.getElementById('plusEnd').value = b.pE;
+            document.getElementById('wireCount').value = b.wires.length;
+            updateWireTable(b.wires);
+        }
+    }
+
+    function closeModal() { 
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('modal').style.display = 'none'; 
+        currentPath = []; rebuildDrawing(); 
+    }
+
+    function updateWireTable(existingWires = null) {
+        const count = parseInt(document.getElementById('wireCount').value);
+        const tbody = document.querySelector("#wireTable tbody");
+        tbody.innerHTML = "";
+        for(let i=1; i<=count; i++) {
+            const w = existingWires ? existingWires[i-1] : { t: 'H07V-K', c: 'bk', cr: '1.5', s: '', e: '' };
+            tbody.innerHTML += `<tr><td>${i}</td>
+                <td><input type="text" class="wire-type" value="${w.t}"></td>
+                <td><select class="wire-color">
+                    <option value="bk" ${w.c==='bk'?'selected':''}>Schwarz (bk)</option>
+                    <option value="bl" ${w.c==='bl'?'selected':''}>Blau (bl)</option>
+                    <option value="dbl" ${w.c==='dbl'?'selected':''}>Dunkelblau (dbl)</option>
+                    <option value="dblws" ${w.c==='dblws'?'selected':''}>Dunkelblau-Weiß (dblws)</option>
+                    <option value="br" ${w.c==='br'?'selected':''}>Braun (br)</option>
+                    <option value="gnge" ${w.c==='gnge'?'selected':''}>Grün-Gelb (gnge)</option>
+                    <option value="rt" ${w.c==='rt'?'selected':''}>Rot (rt)</option>
+                    <option value="gr" ${w.c==='gr'?'selected':''}>Grau (gr)</option>
+                    <option value="or" ${w.c==='or'?'selected':''}>Orange (or)</option>
+                </select></td>
+                <td><input type="text" class="wire-cross" value="${w.cr}"></td>
+                <td><input type="text" class="wire-label-s" value="${w.s}" placeholder="z.B. F1"></td>
+                <td><input type="text" class="wire-label-e" value="${w.e}" placeholder="z.B. X1.1"></td></tr>`;
+        }
+    }
+
+    function saveCableBundle() {
+        const b = { 
+            name: document.getElementById('bundleName').value, 
+            color: editIndex === -1 ? document.getElementById('drawColor').value : allBundles[editIndex].color,
+            len: lastMeasuredLength, 
+            pS: parseFloat(document.getElementById('plusStart').value), 
+            pE: parseFloat(document.getElementById('plusEnd').value), 
+            path: editIndex === -1 ? [...currentPath] : allBundles[editIndex].path,
+            wires: [] 
+        };
+        document.querySelectorAll("#wireTable tbody tr").forEach(r => {
+            b.wires.push({ t: r.querySelector(".wire-type").value, c: r.querySelector(".wire-color").value, cr: r.querySelector(".wire-cross").value, s: r.querySelector(".wire-label-s").value, e: r.querySelector(".wire-label-e").value });
+        });
+        if(editIndex === -1) allBundles.push(b); else allBundles[editIndex] = b;
+        updateSidebarList(); rebuildDrawing(); closeModal();
+    }
+
+    function updateSidebarList() {
+        const container = document.getElementById('bundleContainer');
+        container.innerHTML = "";
+        allBundles.forEach((b, i) => {
+            container.innerHTML += `<div class="bundle-item">
+                <div class="bundle-info"><div class="color-dot" style="background: ${b.color}"></div><span><strong>${b.name}</strong></span></div>
+                <div class="bundle-actions">
+                    <button class="action-btn" onclick="editBundle(${i})">✎</button>
+                    <button class="action-btn" onclick="deleteBundle(${i})" style="background:var(--danger)">✕</button>
+                </div>
+            </div>`;
+        });
+    }
+
+    function editBundle(i) { editIndex = i; lastMeasuredLength = allBundles[i].len; openModal(); }
+    function deleteBundle(i) { if(confirm("Löschen?")) { allBundles.splice(i, 1); updateSidebarList(); rebuildDrawing(); } }
+
+    function autoFill(cls, inc) {
+        const rows = document.querySelectorAll("#wireTable tbody tr");
+        if(rows.length === 0) return;
+        const val = rows[0].querySelector("."+cls).value;
+        for(let i=1; i<rows.length; i++) {
+            const f = rows[i].querySelector("."+cls);
+            if(inc) {
+                const m = val.match(/(\d+)$/);
+                if(!m) { f.value = val; continue; }
+                f.value = val.substring(0, val.length-m[1].length) + (parseInt(m[1])+i).toString().padStart(m[1].length, '0');
+            } else f.value = val;
+        }
+    }
+
+    function saveProjectJSON() {
+        const projectData = { mmPerPixel, realLengthValue: document.getElementById('realLength').value, bundles: allBundles };
+        const blob = new Blob([JSON.stringify(projectData)], { type: 'application/json' });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "UWE_Projekt_" + new Date().toLocaleDateString() + ".json";
+        a.click();
+    }
+
+    function loadProjectJSON(event) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = JSON.parse(e.target.result);
+            allBundles = data.bundles;
+            mmPerPixel = data.mmPerPixel;
+            document.getElementById('realLength').value = data.realLengthValue;
+            document.getElementById('btnMeasure').disabled = false;
+            updateSidebarList();
+            rebuildDrawing();
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    function exportWustec() {
+        let csv = "ID;Quelle;Ziel;Querschnitt;Farbe;Länge_mm;Drucktext_Quelle;Drucktext_Ziel;Ader-Typ;Crimpung_Quelle;Crimpung_Ziel;Reserve_mm;BMK_Quelle;BMK_Ziel\n";
+        allBundles.forEach((b, bi) => b.wires.forEach((w, wi) => {
+            const len = Math.round(b.len+b.pS+b.pE);
+            csv += `${bi+1}_${wi+1};${w.s};${b.name};${w.cr};${w.c};${len};${w.s};${w.e};${w.t};Aderendhülse;Aderendhülse;0;${b.name};${b.name}\n`;
+        }));
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "UWE_Wustec_Export.csv"; a.click();
+    }
+
+    function exportVisual() {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width; tempCanvas.height = canvas.height + (allBundles.length * 30) + 120;
+        const tCtx = tempCanvas.getContext('2d');
+        tCtx.fillStyle = "white"; tCtx.fillRect(0,0,tempCanvas.width, tempCanvas.height);
+        tCtx.drawImage(canvas, 0, 0);
+        tCtx.fillStyle = "black"; tCtx.font = "bold 24px Arial"; tCtx.fillText("Legende Kabelstränge (UWE)", 20, canvas.height + 40);
+        allBundles.forEach((b, i) => {
+            const y = canvas.height + 80 + (i*30);
+            tCtx.fillStyle = b.color;
+            tCtx.beginPath(); tCtx.arc(30, y-8, 10, 0, Math.PI*2); tCtx.fill();
+            tCtx.fillStyle = "black"; tCtx.font = "18px Arial";
+            tCtx.fillText(`${b.name}: ${b.wires.length} Adern, ca. ${Math.round(b.len+b.pS+b.pE)}mm`, 55, y);
+        });
+        const a = document.createElement("a"); a.href = tempCanvas.toDataURL(); a.download = "UWE_Doku.png"; a.click();
+    }
+</script>
+</body>
+</html>

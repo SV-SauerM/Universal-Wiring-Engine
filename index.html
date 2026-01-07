@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U W E - Universal Wiring Engine</title>
+    <meta name="description" content="UWE - Universal Wiring Engine: Professionelles Tool zur Erfassung und Dokumentation von Kabelbäumen mit Maßstab-Messung und Wustec-Export">
+    <meta name="keywords" content="Kabelbaum, Verdrahtung, Kabel, UWE, Wiring, Dokumentation">
+    <meta name="author" content="UWE">
+    <title>UWE - Universal Wiring Engine</title>
     <style>
         :root { --primary: #3498db; --secondary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #ecf0f1; }
         body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: var(--secondary); color: white; overflow: hidden; }
@@ -38,7 +41,8 @@
         /* Liste in Sidebar */
         .bundle-item { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85em; }
         .bundle-info { display: flex; align-items: center; gap: 10px; }
-        .action-btn { padding: 5px 8px; font-size: 12px; background: #444; color: white; border-radius: 3px; cursor: pointer; }
+        .bundle-actions { display: flex; align-items: center; gap: 5px; }
+        .action-btn { padding: 5px 8px; font-size: 12px; background: #444; color: white; border-radius: 3px; cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: none; }
         .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid white; }
     </style>
 </head>
@@ -67,6 +71,7 @@
 
     <div class="step">
         <strong>2. Maßstab</strong>
+        <div style="font-size: 0.85em; color: #bdc3c7; margin-bottom: 5px;">(Eingabe in mm)</div>
         <input type="number" id="realLength" placeholder="Länge in mm" value="0">
         <button class="btn-primary" onclick="setMode('scale')" id="btnScale">Maßstab festlegen</button>
         <button class="btn-success" id="btnConfirmScale" onclick="confirmScale()" style="display:none; margin-top:10px;">Maßstab bestätigen ✓</button>
@@ -76,6 +81,7 @@
         <strong>3. Farbe & Messen</strong>
         <input type="color" id="drawColor" value="#f39c12" style="height: 40px; width: 100%; cursor: pointer; border:none; border-radius:4px;">
         <button class="btn-primary" onclick="setMode('measure')" id="btnMeasure" disabled style="background: var(--warning); margin-top:10px;">Kabelstrang zeichnen</button>
+        <div id="drawHint" style="display:none; font-size: 0.8em; color: #bdc3c7; margin-top: 5px; font-style: italic;">💡 Tipp: Doppelklick beendet das Zeichnen</div>
     </div>
 
     <div id="project-list">
@@ -89,7 +95,7 @@
 
 <div id="main"><canvas id="canvas"></canvas></div>
 
-<div id="overlay"></div>
+<div id="overlay" onclick="closeModal()"></div>
 <div id="modal">
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; margin-bottom:15px;">
         <h3 id="modalHeaderTitle" style="margin:0">Kabelbaum Details</h3>
@@ -133,20 +139,34 @@
     document.getElementById('upload').onchange = (e) => loadMainImage(e.target.files[0]);
 
     function loadMainImage(file) {
+        if (!file) return;
         const reader = new FileReader();
+        reader.onerror = () => alert("Fehler beim Laden des Bildes!");
         reader.onload = (f) => {
             img.onload = () => {
-                canvas.width = img.width; canvas.height = img.height;
+                canvas.width = img.width; 
+                canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
                 originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
                 rebuildDrawing();
             };
+            img.onerror = () => alert("Fehler: Bild konnte nicht geladen werden!");
             img.src = f.target.result;
         };
         reader.readAsDataURL(file);
     }
 
-    function setMode(m) { mode = m; currentPath = []; }
+    function setMode(m) { 
+        mode = m; 
+        currentPath = []; 
+        if(m === 'measure' && editIndex === -1) {
+            document.getElementById('btnMeasure').style.background = 'var(--warning)';
+            document.getElementById('btnMeasure').textContent = 'Kabelstrang zeichnen';
+            document.getElementById('drawHint').style.display = 'block';
+        } else {
+            document.getElementById('drawHint').style.display = 'none';
+        }
+    }
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
         return { x: (e.clientX - rect.left) * (canvas.width / rect.width), y: (e.clientY - rect.top) * (canvas.height / rect.height) };
@@ -178,8 +198,21 @@
     };
 
     function confirmScale() {
+        if (currentPath.length < 2) {
+            alert("Bitte zuerst zwei Punkte für den Maßstab setzen!");
+            return;
+        }
+        const realLength = parseFloat(document.getElementById('realLength').value);
+        if (!realLength || realLength <= 0) {
+            alert("Bitte eine gültige Länge in mm eingeben!");
+            return;
+        }
         const d = Math.sqrt(Math.pow(currentPath[1].x-currentPath[0].x,2)+Math.pow(currentPath[1].y-currentPath[0].y,2));
-        mmPerPixel = document.getElementById('realLength').value / d;
+        if (d === 0) {
+            alert("Die beiden Punkte sind identisch! Bitte zwei verschiedene Punkte wählen.");
+            return;
+        }
+        mmPerPixel = realLength / d;
         document.getElementById('btnMeasure').disabled = false;
         document.getElementById('btnConfirmScale').style.display = 'none';
         rebuildDrawing();
@@ -204,8 +237,12 @@
             let px = 0;
             for(let i=1; i<currentPath.length; i++) px += Math.sqrt(Math.pow(currentPath[i].x-currentPath[i-1].x,2)+Math.pow(currentPath[i].y-currentPath[i-1].y,2));
             lastMeasuredLength = px * mmPerPixel;
-            editIndex = -1;
-            openModal();
+            if(editIndex === -1) {
+                openModal();
+            } else {
+                // Neuzeichnen-Modus: Modal mit bestehenden Daten öffnen
+                openModal();
+            }
         }
     };
 
@@ -228,7 +265,18 @@
     function closeModal() { 
         document.getElementById('modal').style.display = 'none'; 
         document.getElementById('overlay').style.display = 'none'; 
-        currentPath = []; rebuildDrawing(); 
+        if(editIndex !== -1 && mode === 'measure') {
+            // Neuzeichnen-Modus bleibt aktiv
+            snapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
+        } else {
+            currentPath = []; 
+            editIndex = -1;
+            mode = 'none';
+            document.getElementById('btnMeasure').style.background = 'var(--warning)';
+            document.getElementById('btnMeasure').textContent = 'Kabelstrang zeichnen';
+            document.getElementById('drawHint').style.display = 'none';
+            rebuildDrawing();
+        }
     }
 
     function updateWireTable(existingWires = null) {
@@ -257,19 +305,44 @@
     }
 
     function saveCableBundle() {
+        const bundleName = document.getElementById('bundleName').value.trim();
+        if (!bundleName) {
+            alert("Bitte einen Strang-Namen eingeben!");
+            return;
+        }
+        if (editIndex === -1 && currentPath.length < 2) {
+            alert("Bitte zuerst einen Pfad zeichnen!");
+            return;
+        }
+        const pathToUse = currentPath.length > 0 ? [...currentPath] : (editIndex === -1 ? [] : allBundles[editIndex].path);
+        if (pathToUse.length < 2) {
+            alert("Der Pfad muss mindestens 2 Punkte haben!");
+            return;
+        }
         const b = { 
-            name: document.getElementById('bundleName').value, 
+            name: bundleName, 
             color: editIndex === -1 ? document.getElementById('drawColor').value : allBundles[editIndex].color,
             len: lastMeasuredLength, 
-            pS: parseFloat(document.getElementById('plusStart').value), 
-            pE: parseFloat(document.getElementById('plusEnd').value), 
-            path: editIndex === -1 ? [...currentPath] : allBundles[editIndex].path,
+            pS: parseFloat(document.getElementById('plusStart').value) || 0, 
+            pE: parseFloat(document.getElementById('plusEnd').value) || 0, 
+            path: pathToUse,
             wires: [] 
         };
         document.querySelectorAll("#wireTable tbody tr").forEach(r => {
-            b.wires.push({ t: r.querySelector(".wire-type").value, c: r.querySelector(".wire-color").value, cr: r.querySelector(".wire-cross").value, s: r.querySelector(".wire-label-s").value, e: r.querySelector(".wire-label-e").value });
+            b.wires.push({ 
+                t: r.querySelector(".wire-type").value || '', 
+                c: r.querySelector(".wire-color").value || 'bk', 
+                cr: r.querySelector(".wire-cross").value || '', 
+                s: r.querySelector(".wire-label-s").value || '', 
+                e: r.querySelector(".wire-label-e").value || '' 
+            });
         });
         if(editIndex === -1) allBundles.push(b); else allBundles[editIndex] = b;
+        editIndex = -1;
+        mode = 'none';
+        document.getElementById('btnMeasure').style.background = 'var(--warning)';
+        document.getElementById('btnMeasure').textContent = 'Kabelstrang zeichnen';
+        document.getElementById('drawHint').style.display = 'none';
         updateSidebarList(); rebuildDrawing(); closeModal();
     }
 
@@ -278,16 +351,41 @@
         container.innerHTML = "";
         allBundles.forEach((b, i) => {
             container.innerHTML += `<div class="bundle-item">
-                <div class="bundle-info"><div class="color-dot" style="background: ${b.color}"></div><span><strong>${b.name}</strong></span></div>
+                <div class="bundle-info"><div class="color-dot" style="background: ${b.color}; cursor: pointer;" onclick="changeBundleColor(${i})" title="Farbe ändern"></div><span><strong>${b.name}</strong></span></div>
                 <div class="bundle-actions">
-                    <button class="action-btn" onclick="editBundle(${i})">✎</button>
-                    <button class="action-btn" onclick="deleteBundle(${i})" style="background:var(--danger)">✕</button>
+                    <button class="action-btn" onclick="editBundle(${i})" title="Bearbeiten">✎</button>
+                    <button class="action-btn" onclick="redrawBundle(${i})" style="background:var(--warning); color:black;" title="Neu zeichnen">↻</button>
+                    <button class="action-btn" onclick="deleteBundle(${i})" style="background:var(--danger)" title="Löschen">✕</button>
                 </div>
             </div>`;
         });
     }
 
+    function changeBundleColor(i) {
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = allBundles[i].color;
+        input.onchange = (e) => {
+            allBundles[i].color = e.target.value;
+            updateSidebarList();
+            rebuildDrawing();
+        };
+        input.click();
+    }
     function editBundle(i) { editIndex = i; lastMeasuredLength = allBundles[i].len; openModal(); }
+    function redrawBundle(i) {
+        if(!mmPerPixel) { alert("Bitte zuerst den Maßstab festlegen!"); return; }
+        editIndex = i;
+        const b = allBundles[i];
+        document.getElementById('drawColor').value = b.color;
+        currentPath = [];
+        mode = 'measure';
+        document.getElementById('btnMeasure').style.background = 'var(--success)';
+        document.getElementById('btnMeasure').textContent = 'Neu zeichnen: ' + b.name;
+        document.getElementById('drawHint').style.display = 'block';
+        rebuildDrawing();
+        snapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
+    }
     function deleteBundle(i) { if(confirm("Löschen?")) { allBundles.splice(i, 1); updateSidebarList(); rebuildDrawing(); } }
 
     function autoFill(cls, inc) {
@@ -304,75 +402,120 @@
     }
 
     function saveProjectJSON() {
-        const defaultName = "UWE_Projekt_" + new Date().toLocaleDateString();
+        if (allBundles.length === 0 && !originalImageSnapshot) {
+            alert("Keine Daten zum Speichern vorhanden!");
+            return;
+        }
+        const defaultName = "UWE_Projekt_" + new Date().toISOString().split('T')[0];
         const fileName = prompt("Dateiname eingeben:", defaultName);
         if (fileName === null) return; // Abbrechen
         
         const projectData = { 
+            version: "1.0",
             mmPerPixel, 
             realLengthValue: document.getElementById('realLength').value, 
             bundles: allBundles,
-            imageData: img.src && img.src.startsWith('data:') ? img.src : null
+            imageData: img.src && img.src.startsWith('data:') ? img.src : null,
+            exportDate: new Date().toISOString()
         };
-        const blob = new Blob([JSON.stringify(projectData)], { type: 'application/json' });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = (fileName.trim() || defaultName) + ".json";
-        a.click();
+        try {
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = (fileName.trim() || defaultName) + ".json";
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } catch(err) {
+            alert("Fehler beim Speichern: " + err.message);
+        }
     }
 
     function loadProjectJSON(event) {
+        if (!event.target.files || !event.target.files[0]) return;
         const reader = new FileReader();
+        reader.onerror = () => alert("Fehler beim Laden der Datei!");
         reader.onload = (e) => {
-            const data = JSON.parse(e.target.result);
-            allBundles = data.bundles || [];
-            mmPerPixel = data.mmPerPixel || 0;
-            document.getElementById('realLength').value = data.realLengthValue || 0;
-            document.getElementById('btnMeasure').disabled = false;
-            
-            // Bild laden falls vorhanden
-            if (data.imageData) {
-                img.onload = () => {
-                    canvas.width = img.width; 
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
-                    rebuildDrawing();
-                };
-                img.src = data.imageData;
+            try {
+                const data = JSON.parse(e.target.result);
+                allBundles = data.bundles || [];
+                mmPerPixel = data.mmPerPixel || 0;
+                document.getElementById('realLength').value = data.realLengthValue || 0;
+                document.getElementById('btnMeasure').disabled = false;
+                
+                // Bild laden falls vorhanden
+                if (data.imageData) {
+                    img.onload = () => {
+                        canvas.width = img.width; 
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
+                        rebuildDrawing();
+                    };
+                    img.onerror = () => alert("Fehler beim Laden des Bildes!");
+                    img.src = data.imageData;
+                }
+                
+                updateSidebarList();
+                if(originalImageSnapshot) rebuildDrawing();
+            } catch(err) {
+                alert("Fehler: Ungültige Projektdatei! " + err.message);
             }
-            
-            updateSidebarList();
-            if(originalImageSnapshot) rebuildDrawing();
         };
         reader.readAsText(event.target.files[0]);
     }
 
     function exportWustec() {
+        if (allBundles.length === 0) {
+            alert("Keine Kabelstränge vorhanden!");
+            return;
+        }
         let csv = "ID;Quelle;Ziel;Querschnitt;Farbe;Länge_mm;Drucktext_Quelle;Drucktext_Ziel;Ader-Typ;Crimpung_Quelle;Crimpung_Ziel;Reserve_mm;BMK_Quelle;BMK_Ziel\n";
-        allBundles.forEach((b, bi) => b.wires.forEach((w, wi) => {
-            const len = Math.round(b.len+b.pS+b.pE);
-            csv += `${bi+1}_${wi+1};${w.s};${b.name};${w.cr};${w.c};${len};${w.s};${w.e};${w.t};Aderendhülse;Aderendhülse;0;${b.name};${b.name}\n`;
-        }));
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "Wustec_Export.csv"; a.click();
+        allBundles.forEach((b, bi) => {
+            if (!b.wires || b.wires.length === 0) return;
+            b.wires.forEach((w, wi) => {
+                const len = Math.round(b.len+b.pS+b.pE);
+                csv += `${bi+1}_${wi+1};${w.s || ''};${b.name || ''};${w.cr || ''};${w.c || ''};${len};${w.s || ''};${w.e || ''};${w.t || ''};Aderendhülse;Aderendhülse;0;${b.name || ''};${b.name || ''}\n`;
+            });
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement("a"); 
+        a.href = URL.createObjectURL(blob); 
+        a.download = "Wustec_Export_" + new Date().toISOString().split('T')[0] + ".csv"; 
+        a.click();
+        URL.revokeObjectURL(a.href);
     }
 
     function exportVisual() {
+        if (!originalImageSnapshot || allBundles.length === 0) {
+            alert("Keine Daten zum Exportieren vorhanden!");
+            return;
+        }
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width; tempCanvas.height = canvas.height + (allBundles.length * 30) + 100;
+        tempCanvas.width = canvas.width; 
+        tempCanvas.height = canvas.height + (allBundles.length * 30) + 100;
         const tCtx = tempCanvas.getContext('2d');
-        tCtx.fillStyle = "white"; tCtx.fillRect(0,0,tempCanvas.width, tempCanvas.height);
+        tCtx.fillStyle = "white"; 
+        tCtx.fillRect(0,0,tempCanvas.width, tempCanvas.height);
         tCtx.drawImage(canvas, 0, 0);
-        tCtx.fillStyle = "black"; tCtx.font = "bold 24px Arial"; tCtx.fillText("Legende Kabelstränge (UWE)", 20, canvas.height + 40);
+        tCtx.fillStyle = "black"; 
+        tCtx.font = "bold 24px Arial"; 
+        tCtx.fillText("Legende Kabelstränge (UWE)", 20, canvas.height + 40);
         allBundles.forEach((b, i) => {
             const y = canvas.height + 80 + (i*30);
-            tCtx.fillStyle = b.color;
-            tCtx.beginPath(); tCtx.arc(30, y-8, 10, 0, Math.PI*2); tCtx.fill();
-            tCtx.fillStyle = "black"; tCtx.font = "18px Arial";
-            tCtx.fillText(`${b.name}: ${b.wires.length} Adern, ca. ${Math.round(b.len+b.pS+b.pE)}mm`, 55, y);
+            tCtx.fillStyle = b.color || '#000000';
+            tCtx.beginPath(); 
+            tCtx.arc(30, y-8, 10, 0, Math.PI*2); 
+            tCtx.fill();
+            tCtx.fillStyle = "black"; 
+            tCtx.font = "18px Arial";
+            const wireCount = b.wires ? b.wires.length : 0;
+            const totalLength = Math.round((b.len || 0) + (b.pS || 0) + (b.pE || 0));
+            tCtx.fillText(`${b.name || 'Unbenannt'}: ${wireCount} Adern, ca. ${totalLength}mm`, 55, y);
         });
-        const a = document.createElement("a"); a.href = tempCanvas.toDataURL(); a.download = "UWE_Doku.png"; a.click();
+        const a = document.createElement("a"); 
+        a.href = tempCanvas.toDataURL('image/png'); 
+        a.download = "UWE_Doku_" + new Date().toISOString().split('T')[0] + ".png"; 
+        a.click();
     }
 </script>
 </body>

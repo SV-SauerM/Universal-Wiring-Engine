@@ -8,18 +8,19 @@
         :root { --primary: #3498db; --secondary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #ecf0f1; }
         body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: var(--secondary); color: white; overflow: hidden; }
         
+        /* Sidebar Design */
         #sidebar { width: 350px; padding: 20px; border-right: 2px solid #1a252f; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
         
+        /* Titel Branding */
         .brand-container { margin-bottom: 5px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .brand-letter { font-size: 1.8em; font-weight: bold; color: var(--primary); display: inline-block; }
         .brand-suffix { font-size: 0.9em; color: #bdc3c7; font-weight: normal; margin-right: 10px; }
 
         .step { background: #34495e; padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); }
-        .help-text { font-size: 0.75em; color: #bdc3c7; margin-top: 8px; line-height: 1.4; }
-        
         #main { flex-grow: 1; background: var(--light); display: flex; justify-content: center; align-items: center; overflow: auto; position: relative; }
         canvas { background: white; cursor: crosshair; box-shadow: 0 0 20px rgba(0,0,0,0.5); max-width: 100%; max-height: 95vh; object-fit: contain; }
 
+        /* Modal / Tabelle */
         #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 999; }
         #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 1100px; background: white; color: #333; padding: 25px; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.5); z-index: 1000; max-height: 90vh; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
@@ -27,16 +28,17 @@
         th { background: #f8f9fa; }
         input[type="text"], input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         
+        /* Buttons */
         .fill-btn { background: var(--primary); color: white; border: none; border-radius: 3px; padding: 2px 6px; font-size: 11px; cursor: pointer; float: right; margin-top: 2px; }
         button { padding: 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; width: 100%; }
         .btn-success { background: var(--success); color: white; width: 100%; }
         .btn-danger { background: var(--danger); color: white; width: 100%; }
         
+        /* Liste in Sidebar */
         .bundle-item { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin-top: 5px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85em; }
         .bundle-info { display: flex; align-items: center; gap: 10px; }
-        .action-btn { padding: 5px 8px; font-size: 12px; background: #444; color: white; border-radius: 3px; cursor: pointer; border: none; }
-        .action-btn:hover { opacity: 0.8; }
+        .action-btn { padding: 5px 8px; font-size: 12px; background: #444; color: white; border-radius: 3px; cursor: pointer; }
         .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid white; }
     </style>
 </head>
@@ -74,11 +76,6 @@
         <strong>3. Farbe & Messen</strong>
         <input type="color" id="drawColor" value="#f39c12" style="height: 40px; width: 100%; cursor: pointer; border:none; border-radius:4px;">
         <button class="btn-primary" onclick="setMode('measure')" id="btnMeasure" disabled style="background: var(--warning); margin-top:10px;">Kabelstrang zeichnen</button>
-        <div class="help-text">
-            <strong>Bedienung:</strong><br>
-            • Linksklick: Punkt setzen<br>
-            • Doppelklick: Strang abschließen
-        </div>
     </div>
 
     <div id="project-list">
@@ -104,7 +101,7 @@
         <div><label>Zuschlag Hinten (mm):</label><input type="number" id="plusEnd" value="150"></div>
     </div>
     <div style="background:#f8f9fa; padding:10px; border-radius:5px; margin-bottom:10px; display:flex; gap:10px; align-items:center;">
-        <label>Anzahl Drähte:</label>
+        <label>Adern:</label>
         <input type="number" id="wireCount" value="1" min="1" style="width:70px;">
         <button onclick="updateWireTable()" style="padding:6px 12px; background:var(--secondary); color:white;">Tabelle erzeugen</button>
     </div>
@@ -229,8 +226,8 @@
     }
 
     function closeModal() { 
-        document.getElementById('overlay').style.display = 'none';
         document.getElementById('modal').style.display = 'none'; 
+        document.getElementById('overlay').style.display = 'none'; 
         currentPath = []; rebuildDrawing(); 
     }
 
@@ -295,7 +292,6 @@
 
     function autoFill(cls, inc) {
         const rows = document.querySelectorAll("#wireTable tbody tr");
-        if(rows.length === 0) return;
         const val = rows[0].querySelector("."+cls).value;
         for(let i=1; i<rows.length; i++) {
             const f = rows[i].querySelector("."+cls);
@@ -308,11 +304,20 @@
     }
 
     function saveProjectJSON() {
-        const projectData = { mmPerPixel, realLengthValue: document.getElementById('realLength').value, bundles: allBundles };
+        const defaultName = "UWE_Projekt_" + new Date().toLocaleDateString();
+        const fileName = prompt("Dateiname eingeben:", defaultName);
+        if (fileName === null) return; // Abbrechen
+        
+        const projectData = { 
+            mmPerPixel, 
+            realLengthValue: document.getElementById('realLength').value, 
+            bundles: allBundles,
+            imageData: img.src && img.src.startsWith('data:') ? img.src : null
+        };
         const blob = new Blob([JSON.stringify(projectData)], { type: 'application/json' });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "UWE_Projekt_" + new Date().toLocaleDateString() + ".json";
+        a.download = (fileName.trim() || defaultName) + ".json";
         a.click();
     }
 
@@ -320,12 +325,25 @@
         const reader = new FileReader();
         reader.onload = (e) => {
             const data = JSON.parse(e.target.result);
-            allBundles = data.bundles;
-            mmPerPixel = data.mmPerPixel;
-            document.getElementById('realLength').value = data.realLengthValue;
+            allBundles = data.bundles || [];
+            mmPerPixel = data.mmPerPixel || 0;
+            document.getElementById('realLength').value = data.realLengthValue || 0;
             document.getElementById('btnMeasure').disabled = false;
+            
+            // Bild laden falls vorhanden
+            if (data.imageData) {
+                img.onload = () => {
+                    canvas.width = img.width; 
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
+                    rebuildDrawing();
+                };
+                img.src = data.imageData;
+            }
+            
             updateSidebarList();
-            rebuildDrawing();
+            if(originalImageSnapshot) rebuildDrawing();
         };
         reader.readAsText(event.target.files[0]);
     }
@@ -337,12 +355,12 @@
             csv += `${bi+1}_${wi+1};${w.s};${b.name};${w.cr};${w.c};${len};${w.s};${w.e};${w.t};Aderendhülse;Aderendhülse;0;${b.name};${b.name}\n`;
         }));
         const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "UWE_Wustec_Export.csv"; a.click();
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "Wustec_Export.csv"; a.click();
     }
 
     function exportVisual() {
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width; tempCanvas.height = canvas.height + (allBundles.length * 30) + 120;
+        tempCanvas.width = canvas.width; tempCanvas.height = canvas.height + (allBundles.length * 30) + 100;
         const tCtx = tempCanvas.getContext('2d');
         tCtx.fillStyle = "white"; tCtx.fillRect(0,0,tempCanvas.width, tempCanvas.height);
         tCtx.drawImage(canvas, 0, 0);

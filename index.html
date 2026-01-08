@@ -177,8 +177,13 @@
     }
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
+        // WICHTIG: Umrechnung von Anzeige-Koordinaten zu Canvas-Pixel-Koordinaten
+        // Das Canvas-Element kann auf dem Bildschirm anders groß sein als seine Pixel-Dimensionen
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        const canvasX = (e.clientX - rect.left) * scaleX;
+        const canvasY = (e.clientY - rect.top) * scaleY;
         
         // Transformiere zurück zu Bild-Koordinaten
         // Die Transformation ist:
@@ -203,8 +208,10 @@
     canvas.onmousemove = (e) => {
         if (isPanning) {
             const rect = canvas.getBoundingClientRect();
-            const deltaX = (e.clientX - rect.left) - lastPanPoint.x;
-            const deltaY = (e.clientY - rect.top) - lastPanPoint.y;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const deltaX = ((e.clientX - rect.left) - lastPanPoint.x) * scaleX;
+            const deltaY = ((e.clientY - rect.top) - lastPanPoint.y) * scaleY;
             panX += deltaX / zoom;
             panY += deltaY / zoom;
             lastPanPoint = { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -269,8 +276,10 @@
     canvas.onwheel = (e) => {
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mouseX = (e.clientX - rect.left) * scaleX;
+        const mouseY = (e.clientY - rect.top) * scaleY;
         
         const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
         const newZoom = Math.max(0.1, Math.min(5, zoom * zoomFactor));

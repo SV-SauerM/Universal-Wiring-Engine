@@ -67,6 +67,10 @@
     <div class="step">
         <strong>1. Bild laden</strong>
         <input type="file" id="upload" accept="image/*">
+        <label style="display:flex; align-items:center; gap:5px; margin-top:10px; font-size:0.9em; cursor:pointer;">
+            <input type="checkbox" id="autoFitCheckbox" checked onchange="toggleAutoFit()">
+            <span>Bild automatisch an Fenster anpassen</span>
+        </label>
     </div>
 
     <div class="step">
@@ -136,23 +140,78 @@
     let img = new Image(), mode = 'none', mmPerPixel = 0, currentPath = [], snapshot, allBundles = [], lastMeasuredLength = 0, mouseX = 0, mouseY = 0;
     let originalImageSnapshot = null, editIndex = -1;
     let zoom = 1, panX = 0, panY = 0, isPanning = false, lastPanPoint = { x: 0, y: 0 };
-    // Keine automatische Bild-Skalierung mehr - Canvas hat Bildgröße
+    let autoFitToWindow = true; // Automatische Bildskalierung auf Fenstergröße
+    let imageScale = 1, imageOffsetX = 0, imageOffsetY = 0; // Für Bild-Skalierung
 
     document.getElementById('upload').onchange = (e) => loadMainImage(e.target.files[0]);
 
+    function resizeCanvas() {
+        const main = document.getElementById('main');
+        canvas.width = main.clientWidth;
+        canvas.height = main.clientHeight;
+        if (img.complete && img.width > 0 && autoFitToWindow) {
+            calculateImageScale();
+            rebuildDrawing();
+        }
+    }
+    
+    function calculateImageScale() {
+        if (!img.complete || img.width === 0) return;
+        const main = document.getElementById('main');
+        const availableWidth = main.clientWidth;
+        const availableHeight = main.clientHeight;
+        
+        // Berechne Skalierung, damit das Bild vollständig sichtbar ist
+        const scaleX = availableWidth / img.width;
+        const scaleY = availableHeight / img.height;
+        imageScale = Math.min(scaleX, scaleY) * 0.95; // 95% für etwas Rand
+        
+        // Zentriere das Bild - in Canvas-Koordinaten
+        const scaledWidth = img.width * imageScale;
+        const scaledHeight = img.height * imageScale;
+        imageOffsetX = (availableWidth - scaledWidth) / 2;
+        imageOffsetY = (availableHeight - scaledHeight) / 2;
+    }
+    
+    function toggleAutoFit() {
+        autoFitToWindow = document.getElementById('autoFitCheckbox').checked;
+        if (img.complete && img.width > 0) {
+            if (autoFitToWindow) {
+                resizeCanvas();
+            } else {
+                // Zurück zur Original-Bildgröße
+                canvas.width = img.width;
+                canvas.height = img.height;
+                imageScale = 1;
+                imageOffsetX = 0;
+                imageOffsetY = 0;
+                zoom = 1;
+                panX = 0;
+                panY = 0;
+                rebuildDrawing();
+            }
+        }
+    }
+    
     function loadMainImage(file) {
         if (!file) return;
         const reader = new FileReader();
         reader.onerror = () => alert("Fehler beim Laden des Bildes!");
         reader.onload = (f) => {
             img.onload = () => {
-                canvas.width = img.width; 
-                canvas.height = img.height;
+                if (autoFitToWindow) {
+                    resizeCanvas();
+                } else {
+                    canvas.width = img.width; 
+                    canvas.height = img.height;
+                    imageScale = 1;
+                    imageOffsetX = 0;
+                    imageOffsetY = 0;
+                }
                 // Reset Zoom und Pan beim Laden eines neuen Bildes
                 zoom = 1;
                 panX = 0;
                 panY = 0;
-                ctx.drawImage(img, 0, 0);
                 originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
                 rebuildDrawing();
             };
@@ -161,6 +220,13 @@
         };
         reader.readAsDataURL(file);
     }
+    
+    // Canvas-Größe bei Fenster-Resize anpassen (nur wenn autoFitToWindow aktiv)
+    window.addEventListener('resize', () => {
+        if (img.complete && img.width > 0 && autoFitToWindow) {
+            resizeCanvas();
+        }
+    });
 
     function setMode(m) { 
         mode = m; 
@@ -178,29 +244,46 @@
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
         // WICHTIG: Umrechnung von Anzeige-Koordinaten zu Canvas-Pixel-Koordinaten
-        // Das Canvas-Element kann auf dem Bildschirm anders groß sein als seine Pixel-Dimensionen
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         
         const canvasX = (e.clientX - rect.left) * scaleX;
         const canvasY = (e.clientY - rect.top) * scaleY;
         
-        // Transformiere zurück zu Bild-Koordinaten
-        // Die Transformation ist:
-        // 1. translate(panX * zoom, panY * zoom)
-        // 2. scale(zoom, zoom)
-        //
-        // Ein Punkt (x, y) in Bild-Koordinaten wird transformiert zu:
-        // canvasX = x * zoom + panX * zoom
-        // canvasX = (x + panX) * zoom
-        //
-        // Umkehrung:
-        // canvasX = (x + panX) * zoom
-        // canvasX / zoom = x + panX
-        // canvasX / zoom - panX = x
+        // Verwende die Canvas-Transformationsmatrix direkt für präzise Umkehrung
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.translate(panX * zoom, panY * zoom);
+        ctx.scale(zoom, zoom);
+        if (autoFitToWindow) {
+            ctx.translate(imageOffsetX / zoom, imageOffsetY / zoom);
+            ctx.scale(imageScale, imageScale);
+        }
         
-        const x = canvasX / zoom - panX;
-        const y = canvasY / zoom - panY;
+        // Hole die Transformationsmatrix
+        const matrix = ctx.getTransform();
+        ctx.restore();
+        
+        // Berechne die inverse Transformation
+        const det = matrix.a * matrix.d - matrix.b * matrix.c;
+        if (Math.abs(det) < 0.0001) {
+            // Fallback: direkte Berechnung
+            if (autoFitToWindow) {
+                return {
+                    x: (canvasX - imageOffsetX - panX * zoom) / (imageScale * zoom),
+                    y: (canvasY - imageOffsetY - panY * zoom) / (imageScale * zoom)
+                };
+            } else {
+                return {
+                    x: canvasX / zoom - panX,
+                    y: canvasY / zoom - panY
+                };
+            }
+        }
+        
+        // Inverse Transformation mit Matrix
+        const x = (matrix.d * (canvasX - matrix.e) - matrix.c * (canvasY - matrix.f)) / det;
+        const y = (matrix.a * (canvasY - matrix.f) - matrix.b * (canvasX - matrix.e)) / det;
         
         return { x, y };
     }
@@ -229,9 +312,15 @@
         ctx.restore();
         
         ctx.save();
-        // Transformationen: nur Zoom und Pan
+        // Transformationen
         ctx.translate(panX * zoom, panY * zoom);
         ctx.scale(zoom, zoom);
+        
+        if (autoFitToWindow) {
+            // Mit Bildskalierung
+            ctx.translate(imageOffsetX / zoom, imageOffsetY / zoom);
+            ctx.scale(imageScale, imageScale);
+        }
         
         // Zeichne das Basisbild
         if(img.complete && img.width > 0) {
@@ -242,7 +331,10 @@
         allBundles.forEach(b => {
             if (!b.path || b.path.length === 0) return;
             ctx.strokeStyle = b.color;
-            ctx.lineWidth = Math.max(4, canvas.width / 500) / zoom;
+            const lineWidth = autoFitToWindow ? 
+                Math.max(4, canvas.width / 500) / (zoom * imageScale) : 
+                Math.max(4, canvas.width / 500) / zoom;
+            ctx.lineWidth = lineWidth;
             ctx.beginPath();
             ctx.moveTo(b.path[0].x, b.path[0].y);
             b.path.forEach(p => ctx.lineTo(p.x, p.y));
@@ -250,7 +342,10 @@
         });
         
         // Zeichne aktuellen Pfad (in Bild-Koordinaten)
-        ctx.lineWidth = Math.max(4, canvas.width / 500) / zoom;
+        const lineWidth = autoFitToWindow ? 
+            Math.max(4, canvas.width / 500) / (zoom * imageScale) : 
+            Math.max(4, canvas.width / 500) / zoom;
+        ctx.lineWidth = lineWidth;
         ctx.strokeStyle = (mode === 'scale') ? 'red' : document.getElementById('drawColor').value;
         if (currentPath.length > 0) {
             ctx.beginPath(); 
@@ -266,11 +361,70 @@
         if (e.button === 1) return; // Ignoriere mittlere Maustaste
         if (mode === 'none') return;
         currentPath.push(getPos(e));
+        // Aktualisiere nur den Snapshot, ohne alles neu zu zeichnen
+        // Das verhindert, dass die Zeichnung springt
+        updateSnapshot();
         if (mode === 'scale' && currentPath.length === 2) {
             document.getElementById('btnConfirmScale').style.display = 'block';
             mode = 'none';
         }
     };
+    
+    function updateSnapshot() {
+        // Zeichne alles neu, um einen aktuellen Snapshot zu erstellen
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        
+        ctx.save();
+        // Transformationen
+        ctx.translate(panX * zoom, panY * zoom);
+        ctx.scale(zoom, zoom);
+        
+        if (autoFitToWindow) {
+            ctx.translate(imageOffsetX / zoom, imageOffsetY / zoom);
+            ctx.scale(imageScale, imageScale);
+        }
+        
+        // Zeichne das Basisbild
+        if(img.complete && img.width > 0) {
+            ctx.drawImage(img, 0, 0);
+        }
+        
+        // Zeichne alle gespeicherten Stränge (in Bild-Koordinaten)
+        allBundles.forEach(b => {
+            if (!b.path || b.path.length === 0) return;
+            ctx.strokeStyle = b.color;
+            const lineWidth = autoFitToWindow ? 
+                Math.max(4, canvas.width / 500) / (zoom * imageScale) : 
+                Math.max(4, canvas.width / 500) / zoom;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(b.path[0].x, b.path[0].y);
+            b.path.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.stroke();
+        });
+        
+        // Zeichne bereits gesetzte Punkte des aktuellen Pfads (ohne Mauszeiger)
+        if (currentPath.length > 0) {
+            const lineWidth = autoFitToWindow ? 
+                Math.max(4, canvas.width / 500) / (zoom * imageScale) : 
+                Math.max(4, canvas.width / 500) / zoom;
+            ctx.lineWidth = lineWidth;
+            ctx.strokeStyle = (mode === 'scale') ? 'red' : document.getElementById('drawColor').value;
+            ctx.beginPath();
+            ctx.moveTo(currentPath[0].x, currentPath[0].y);
+            for (let i = 1; i < currentPath.length; i++) {
+                ctx.lineTo(currentPath[i].x, currentPath[i].y);
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+        
+        // Snapshot erstellen
+        snapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
+    }
     
     // Mausrad-Zoom
     canvas.onwheel = (e) => {
@@ -286,8 +440,14 @@
         
         // Zoom zum Mauszeiger
         const zoomChange = newZoom / zoom;
-        panX = mouseX / newZoom - (mouseX / zoom - panX) * zoomChange;
-        panY = mouseY / newZoom - (mouseY / zoom - panY) * zoomChange;
+        if (autoFitToWindow) {
+            // Mit Bildskalierung: mouseX ist in Canvas-Koordinaten
+            panX = mouseX / newZoom - (mouseX / zoom - panX) * zoomChange;
+            panY = mouseY / newZoom - (mouseY / zoom - panY) * zoomChange;
+        } else {
+            panX = mouseX / newZoom - (mouseX / zoom - panX) * zoomChange;
+            panY = mouseY / newZoom - (mouseY / zoom - panY) * zoomChange;
+        }
         
         zoom = newZoom;
         rebuildDrawing();
@@ -350,9 +510,14 @@
         ctx.restore();
         
         ctx.save();
-        // Transformationen: nur Zoom und Pan
+        // Transformationen (gleiche wie in redrawCanvas)
         ctx.translate(panX * zoom, panY * zoom);
         ctx.scale(zoom, zoom);
+        
+        if (autoFitToWindow) {
+            ctx.translate(imageOffsetX / zoom, imageOffsetY / zoom);
+            ctx.scale(imageScale, imageScale);
+        }
         
         // Bild zeichnen
         ctx.drawImage(img, 0, 0);
@@ -361,7 +526,10 @@
         allBundles.forEach(b => {
             if (!b.path || b.path.length === 0) return;
             ctx.strokeStyle = b.color;
-            ctx.lineWidth = Math.max(4, canvas.width / 500) / zoom;
+            const lineWidth = autoFitToWindow ? 
+                Math.max(4, canvas.width / 500) / (zoom * imageScale) : 
+                Math.max(4, canvas.width / 500) / zoom;
+            ctx.lineWidth = lineWidth;
             ctx.beginPath();
             ctx.moveTo(b.path[0].x, b.path[0].y);
             b.path.forEach(p => ctx.lineTo(p.x, p.y));
@@ -438,6 +606,7 @@
                     <option value="rt" ${w.c==='rt'?'selected':''}>Rot (rt)</option>
                     <option value="gr" ${w.c==='gr'?'selected':''}>Grau (gr)</option>
                     <option value="or" ${w.c==='or'?'selected':''}>Orange (or)</option>
+                    <option value="ws" ${w.c==='ws'?'selected':''}>Weiß (ws)</option>
                 </select></td>
                 <td><input type="text" class="wire-cross" value="${w.cr}"></td>
                 <td><input type="text" class="wire-label-s" value="${w.s}" placeholder="z.B. F1"></td>
@@ -586,13 +755,19 @@
                 // Bild laden falls vorhanden
                 if (data.imageData) {
                     img.onload = () => {
-                        canvas.width = img.width; 
-                        canvas.height = img.height;
+                        if (autoFitToWindow) {
+                            resizeCanvas();
+                        } else {
+                            canvas.width = img.width; 
+                            canvas.height = img.height;
+                            imageScale = 1;
+                            imageOffsetX = 0;
+                            imageOffsetY = 0;
+                        }
                         // Reset Zoom und Pan beim Laden eines Projekts
                         zoom = 1;
                         panX = 0;
                         panY = 0;
-                        ctx.drawImage(img, 0, 0);
                         originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
                         rebuildDrawing();
                     };
@@ -635,27 +810,56 @@
             alert("Keine Daten zum Exportieren vorhanden!");
             return;
         }
+        
+        // Erstelle ein temporäres Canvas mit Original-Bildgröße (ohne autoFitToWindow)
+        const imageCanvas = document.createElement('canvas');
+        imageCanvas.width = img.width;
+        imageCanvas.height = img.height;
+        const imgCtx = imageCanvas.getContext('2d');
+        
+        // Zeichne das Bild in Originalgröße
+        imgCtx.drawImage(img, 0, 0);
+        
+        // Zeichne alle Stränge in Original-Bildkoordinaten (ohne Transformationen)
+        allBundles.forEach(b => {
+            if (!b.path || b.path.length === 0) return;
+            imgCtx.strokeStyle = b.color;
+            imgCtx.lineWidth = Math.max(4, img.width / 500);
+            imgCtx.beginPath();
+            imgCtx.moveTo(b.path[0].x, b.path[0].y);
+            b.path.forEach(p => imgCtx.lineTo(p.x, p.y));
+            imgCtx.stroke();
+        });
+        
+        // Erstelle das Export-Canvas mit Bild + Legende
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width; 
-        tempCanvas.height = canvas.height + (allBundles.length * 30) + 100;
+        const legendWidth = 350; // Breite für die Legende
+        const padding = 20; // Abstand zwischen Bild und Legende
+        tempCanvas.width = img.width + legendWidth + padding; 
+        tempCanvas.height = Math.max(img.height, (allBundles.length * 30) + 100);
         const tCtx = tempCanvas.getContext('2d');
         tCtx.fillStyle = "white"; 
         tCtx.fillRect(0,0,tempCanvas.width, tempCanvas.height);
-        tCtx.drawImage(canvas, 0, 0);
+        
+        // Zeichne das Bild in Originalgröße links
+        tCtx.drawImage(imageCanvas, 0, 0);
+        
+        // Zeichne die Legende rechts neben dem Bild
+        const legendX = img.width + padding;
         tCtx.fillStyle = "black"; 
         tCtx.font = "bold 24px Arial"; 
-        tCtx.fillText("Legende Kabelstränge (UWE)", 20, canvas.height + 40);
+        tCtx.fillText("Legende Kabelstränge (UWE)", legendX, 40);
         allBundles.forEach((b, i) => {
-            const y = canvas.height + 80 + (i*30);
+            const y = 80 + (i*30);
             tCtx.fillStyle = b.color || '#000000';
             tCtx.beginPath(); 
-            tCtx.arc(30, y-8, 10, 0, Math.PI*2); 
+            tCtx.arc(legendX + 30, y-8, 10, 0, Math.PI*2); 
             tCtx.fill();
             tCtx.fillStyle = "black"; 
             tCtx.font = "18px Arial";
             const wireCount = b.wires ? b.wires.length : 0;
             const totalLength = Math.round((b.len || 0) + (b.pS || 0) + (b.pE || 0));
-            tCtx.fillText(`${b.name || 'Unbenannt'}: ${wireCount} Adern, ca. ${totalLength}mm`, 55, y);
+            tCtx.fillText(`${b.name || 'Unbenannt'}: ${wireCount} Adern, ca. ${totalLength}mm`, legendX + 55, y);
         });
         const a = document.createElement("a"); 
         a.href = tempCanvas.toDataURL('image/png'); 

@@ -482,7 +482,7 @@
     </div>
     
     <div class="step">
-        <h3 style="margin-top: 0;">Muster-Liste</h3>
+        <h3 style="margin-top: 0;" id="patternListTitle">Muster-Liste</h3>
         <div id="patternContainer" style="max-height: 500px; overflow-y: auto;">
             <!-- Muster werden hier dynamisch eingefügt -->
         </div>
@@ -533,6 +533,7 @@
     let patternBundles = []; // Array für Muster-Kabelstränge
     let selectedPatternIndex = -1; // Index des ausgewählten Musters
     let isPatternMode = false; // Ob ein Muster ausgewählt wurde
+    let patternListName = ''; // Name der Muster-Liste (Dateiname)
     let autoFitToWindow = true; // Automatische Bildskalierung auf Fenstergröße
     let imageScale = 1, imageOffsetX = 0, imageOffsetY = 0; // Für Bild-Skalierung
 
@@ -585,7 +586,7 @@
             }
         }
     }
-    
+
     function loadMainImage(file) {
         if (!file) return;
         const reader = new FileReader();
@@ -613,7 +614,7 @@
         };
         reader.readAsDataURL(file);
     }
-    
+
     // Canvas-Größe bei Fenster-Resize anpassen (nur wenn autoFitToWindow aktiv)
     window.addEventListener('resize', () => {
         if (img.complete && img.width > 0 && autoFitToWindow) {
@@ -956,11 +957,17 @@
             let px = 0;
             for(let i=1; i<currentPath.length; i++) px += Math.sqrt(Math.pow(currentPath[i].x-currentPath[i-1].x,2)+Math.pow(currentPath[i].y-currentPath[i-1].y,2));
             lastMeasuredLength = px * mmPerPixel;
-            if(editIndex === -1) {
+            
+            // Wenn Muster-Modus aktiv, öffne Modal mit bereits geladenen Muster-Daten
+            if (isPatternMode && selectedPatternIndex >= 0) {
+                // Daten sind bereits geladen, öffne nur das Modal
+                document.getElementById('modal').style.display = 'block';
+                document.getElementById('overlay').style.display = 'block';
+            } else if(editIndex === -1) {
                 openModal();
             } else {
                 // Neuzeichnen-Modus: Modal mit bestehenden Daten öffnen
-                openModal();
+            openModal();
             }
         }
     };
@@ -968,6 +975,13 @@
     function openModal() {
         document.getElementById('modal').style.display = 'block';
         document.getElementById('overlay').style.display = 'block';
+        
+        // Wenn Muster-Modus aktiv, überschreibe die Daten NICHT (sie sind bereits in selectPattern() geladen)
+        if (isPatternMode && selectedPatternIndex >= 0) {
+            // Daten sind bereits geladen, nichts überschreiben
+            return;
+        }
+        
         if(editIndex === -1) {
             document.getElementById('bundleName').value = "X" + (allBundles.length + 1);
             updateWireTable();
@@ -1050,13 +1064,20 @@
             path: pathToUse,
             wires: [] 
         };
+        // Übernehme ALLE Adern-Daten (Typ, Farbe, Querschnitt, Bezeichnungen Quelle/Ziel)
         document.querySelectorAll("#wireTable tbody tr").forEach(r => {
+            const wireType = r.querySelector(".wire-type") ? r.querySelector(".wire-type").value.trim() : '';
+            const wireColor = r.querySelector(".wire-color") ? r.querySelector(".wire-color").value : 'bk';
+            const wireCross = r.querySelector(".wire-cross") ? r.querySelector(".wire-cross").value.trim() : '';
+            const wireLabelS = r.querySelector(".wire-label-s") ? r.querySelector(".wire-label-s").value.trim() : '';
+            const wireLabelE = r.querySelector(".wire-label-e") ? r.querySelector(".wire-label-e").value.trim() : '';
+            
             b.wires.push({ 
-                t: r.querySelector(".wire-type").value || '', 
-                c: r.querySelector(".wire-color").value || 'bk', 
-                cr: r.querySelector(".wire-cross").value || '', 
-                s: r.querySelector(".wire-label-s").value || '', 
-                e: r.querySelector(".wire-label-e").value || '' 
+                t: wireType, 
+                c: wireColor, 
+                cr: wireCross, 
+                s: wireLabelS, 
+                e: wireLabelE 
             });
         });
         
@@ -1064,18 +1085,32 @@
         if (isPatternMode && selectedPatternIndex >= 0) {
             // Prüfe ob ein Pfad gezeichnet wurde (Muster wurde ausgewählt und gezeichnet)
             if (pathToUse.length >= 2) {
-                // Muster wurde ausgewählt und gezeichnet - speichere als Kabelstrang mit Pfad
+                // Muster wurde ausgewählt und gezeichnet - speichere als Kabelstrang mit ALLEN Daten aus dem Muster
+                // Alle Daten (Name, Farbe, plusStart, plusEnd, alle Adern mit Typ, Farbe, Querschnitt, Bezeichnungen) 
+                // sind bereits im Bundle-Objekt 'b' enthalten
                 allBundles.push(b);
+                // Muster-Modus zurücksetzen
+                isPatternMode = false;
+                selectedPatternIndex = -1;
             } else {
                 // Muster wurde nur bearbeitet (ohne zu zeichnen) - speichere als Muster ohne Pfad
                 const patternBundle = { ...b };
                 patternBundle.path = []; // Muster haben keinen Pfad
                 patternBundles[selectedPatternIndex] = patternBundle;
                 updatePatternList();
+                // Früh beenden, da Muster gespeichert wurde
+                isPatternMode = false;
+                selectedPatternIndex = -1;
+                editIndex = -1;
+                mode = 'none';
+                document.getElementById('btnMeasure').style.background = 'var(--warning)';
+                document.getElementById('btnMeasure').textContent = 'Kabelstrang zeichnen';
+                document.getElementById('drawHint').style.display = 'none';
+                updateSidebarList();
+                rebuildDrawing();
+                closeModal();
+                return;
             }
-            // Muster-Modus zurücksetzen
-            isPatternMode = false;
-            selectedPatternIndex = -1;
         } else if (isPatternMode && selectedPatternIndex === -1) {
             // Neues Muster speichern (ohne Pfad, nur Vorlage)
             const patternBundle = { ...b };
@@ -1095,7 +1130,7 @@
             return; // Früh beenden, da Muster gespeichert wurde
         } else {
             // Normaler Modus: Als Kabelstrang speichern
-            if(editIndex === -1) allBundles.push(b); else allBundles[editIndex] = b;
+        if(editIndex === -1) allBundles.push(b); else allBundles[editIndex] = b;
         }
         
         editIndex = -1;
@@ -1112,12 +1147,27 @@
         const container = document.getElementById('bundleContainer');
         container.innerHTML = "";
         allBundles.forEach((b, i) => {
+            const wireCount = b.wires ? b.wires.length : 0;
+            const length = b.len ? Math.round(b.len) : 0;
             container.innerHTML += `<div class="bundle-item">
-                <div class="bundle-info"><div class="color-dot" style="background: ${b.color}; cursor: pointer;" onclick="changeBundleColor(${i})" title="Farbe ändern"></div><span><strong>${b.name}</strong></span></div>
-                <div class="bundle-actions">
-                    <button class="action-btn" onclick="editBundle(${i})" title="Bearbeiten">✎</button>
-                    <button class="action-btn" onclick="redrawBundle(${i})" style="background:var(--warning); color:black;" title="Neu zeichnen">↻</button>
-                    <button class="action-btn" onclick="deleteBundle(${i})" style="background:var(--danger)" title="Löschen">✕</button>
+                <div class="bundle-info">
+                    <div class="color-dot" style="background: ${b.color}; cursor: pointer;" onclick="changeBundleColor(${i})" title="Farbe ändern"></div>
+                    <div style="flex: 1;">
+                        <div><strong>${b.name}</strong></div>
+                        <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">
+                            ${wireCount} Ader${wireCount !== 1 ? '(n)' : ''} | ${length}mm
+                        </div>
+                    </div>
+                </div>
+                <div class="bundle-actions" style="flex-direction: column; gap: 4px; flex-shrink: 0;">
+                    <div style="display: flex; gap: 4px;">
+                        <button class="action-btn" onclick="duplicateBundle(${i})" title="Duplizieren" style="background: var(--primary);">📋</button>
+                        <button class="action-btn" onclick="editBundle(${i})" title="Bearbeiten">✎</button>
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="action-btn" onclick="redrawBundle(${i})" style="background:var(--warning); color:black;" title="Neu zeichnen">↻</button>
+                        <button class="action-btn" onclick="deleteBundle(${i})" style="background:var(--danger)" title="Löschen">✕</button>
+                    </div>
                 </div>
             </div>`;
         });
@@ -1148,6 +1198,75 @@
         rebuildDrawing();
         snapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
     }
+    function duplicateBundle(i) {
+        const bundle = allBundles[i];
+        
+        // Erstelle eine tiefe Kopie des Kabelstrangs
+        const duplicatedBundle = {
+            name: bundle.name + ' (Kopie)',
+            color: bundle.color,
+            len: bundle.len || 0,
+            pS: bundle.pS || 0,
+            pE: bundle.pE || 0,
+            path: bundle.path ? [...bundle.path] : [], // Pfad kopieren
+            wires: bundle.wires ? bundle.wires.map(w => ({
+                t: w.t || '',
+                c: w.c || 'bk',
+                cr: w.cr || '',
+                s: w.s || '',
+                e: w.e || ''
+            })) : []
+        };
+        
+        // Füge den duplizierten Kabelstrang hinzu
+        allBundles.push(duplicatedBundle);
+        updateSidebarList();
+        rebuildDrawing();
+        
+        // Öffne das Modal zum Bearbeiten des duplizierten Kabelstrangs
+        editIndex = allBundles.length - 1;
+        lastMeasuredLength = duplicatedBundle.len;
+        
+        // Lade Kabelstrang-Daten in das Modal
+        document.getElementById('bundleName').value = duplicatedBundle.name;
+        document.getElementById('drawColor').value = duplicatedBundle.color;
+        document.getElementById('plusStart').value = duplicatedBundle.pS || 0;
+        document.getElementById('plusEnd').value = duplicatedBundle.pE || 0;
+        
+        // Lade Adern
+        const tbody = document.querySelector("#wireTable tbody");
+        tbody.innerHTML = "";
+        if (duplicatedBundle.wires && duplicatedBundle.wires.length > 0) {
+            duplicatedBundle.wires.forEach((w, idx) => {
+                tbody.innerHTML += `<tr>
+                    <td>${idx + 1}</td>
+                    <td><input type="text" class="wire-type" value="${(w.t || '').replace(/"/g, '&quot;')}"></td>
+                    <td><select class="wire-color">
+                        <option value="bk" ${w.c==='bk'?'selected':''}>Schwarz (bk)</option>
+                        <option value="bl" ${w.c==='bl'?'selected':''}>Blau (bl)</option>
+                        <option value="dbl" ${w.c==='dbl'?'selected':''}>Dunkelblau (dbl)</option>
+                        <option value="dblws" ${w.c==='dblws'?'selected':''}>Dunkelblau-Weiß (dblws)</option>
+                        <option value="br" ${w.c==='br'?'selected':''}>Braun (br)</option>
+                        <option value="gnge" ${w.c==='gnge'?'selected':''}>Grün-Gelb (gnge)</option>
+                        <option value="rt" ${w.c==='rt'?'selected':''}>Rot (rt)</option>
+                        <option value="gr" ${w.c==='gr'?'selected':''}>Grau (gr)</option>
+                        <option value="or" ${w.c==='or'?'selected':''}>Orange (or)</option>
+                        <option value="ws" ${w.c==='ws'?'selected':''}>Weiß (ws)</option>
+                    </select></td>
+                    <td><input type="text" class="wire-cross" value="${(w.cr || '').replace(/"/g, '&quot;')}"></td>
+                    <td><input type="text" class="wire-label-s" value="${(w.s || '').replace(/"/g, '&quot;')}" placeholder="z.B. F1"></td>
+                    <td><input type="text" class="wire-label-e" value="${(w.e || '').replace(/"/g, '&quot;')}" placeholder="z.B. X1.1"></td>
+                </tr>`;
+            });
+        }
+        
+        // Setze wireCount
+        document.getElementById('wireCount').value = duplicatedBundle.wires ? duplicatedBundle.wires.length : 0;
+        
+        // Öffne Modal zum Bearbeiten
+        openModal();
+    }
+    
     function deleteBundle(i) { if(confirm("Löschen?")) { allBundles.splice(i, 1); updateSidebarList(); rebuildDrawing(); } }
 
     // ========== Muster-Kabelstränge Funktionen ==========
@@ -1161,17 +1280,24 @@
         }
         patternBundles.forEach((p, i) => {
             container.innerHTML += `<div class="bundle-item" style="margin-bottom: 10px; ${selectedPatternIndex === i ? 'border: 2px solid var(--primary);' : ''}">
-                <div class="bundle-info">
-                    <div class="color-dot" style="background: ${p.color};"></div>
-                    <span><strong>${p.name}</strong></span>
-                    <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">
-                        ${p.wires.length} Ader(n) | ${p.len ? p.len.toFixed(0) : '?'}mm
+                <div class="bundle-info" style="flex: 1; min-width: 0; overflow: hidden;">
+                    <div class="color-dot" style="background: ${p.color}; flex-shrink: 0;"></div>
+                    <div style="flex: 1; min-width: 0; overflow: hidden;">
+                        <div style="word-wrap: break-word; overflow-wrap: break-word;"><strong>${p.name}</strong></div>
+                        <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">
+                            ${p.wires ? p.wires.length : 0} Ader(n) | ${p.len ? p.len.toFixed(0) : '?'}mm
+                        </div>
                     </div>
                 </div>
-                <div class="bundle-actions">
-                    <button class="action-btn" onclick="selectPattern(${i})" title="Muster auswählen" style="background: var(--success);">✓</button>
-                    <button class="action-btn" onclick="editPattern(${i})" title="Bearbeiten">✎</button>
-                    <button class="action-btn" onclick="deletePattern(${i})" style="background: var(--danger)" title="Löschen">✕</button>
+                <div class="bundle-actions" style="flex-direction: column; gap: 4px; flex-shrink: 0;">
+                    <div style="display: flex; gap: 4px;">
+                        <button class="action-btn" onclick="selectPattern(${i})" title="Muster auswählen" style="background: var(--success);">✓</button>
+                        <button class="action-btn" onclick="duplicatePattern(${i})" title="Duplizieren" style="background: var(--primary);">📋</button>
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="action-btn" onclick="editPattern(${i})" title="Bearbeiten">✎</button>
+                        <button class="action-btn" onclick="deletePattern(${i})" style="background: var(--danger)" title="Löschen">✕</button>
+                    </div>
                 </div>
             </div>`;
         });
@@ -1186,40 +1312,49 @@
         isPatternMode = true;
         const pattern = patternBundles[i];
         
-        // Lade Muster-Daten in das Modal
-        document.getElementById('bundleName').value = pattern.name;
-        document.getElementById('drawColor').value = pattern.color;
+        // Lade ALLE Muster-Daten in das Modal (Name, Farbe, plusStart, plusEnd, alle Adern)
+        document.getElementById('bundleName').value = pattern.name || '';
+        document.getElementById('drawColor').value = pattern.color || '#f39c12';
         document.getElementById('plusStart').value = pattern.pS || 0;
         document.getElementById('plusEnd').value = pattern.pE || 0;
         
-        // Lade Adern
+        // Lade ALLE Adern-Daten (Typ, Farbe, Querschnitt, Bezeichnungen)
+        // WICHTIG: Setze wireCount, damit updateWireTable() nicht die Daten überschreibt
+        document.getElementById('wireCount').value = pattern.wires ? pattern.wires.length : 0;
+        
         const tbody = document.querySelector("#wireTable tbody");
         tbody.innerHTML = "";
-        pattern.wires.forEach(w => {
-            tbody.innerHTML += `<tr>
-                <td><input type="text" class="wire-type" value="${w.t}"></td>
-                <td><select class="wire-color">
-                    <option value="bk" ${w.c==='bk'?'selected':''}>Schwarz (bk)</option>
-                    <option value="bl" ${w.c==='bl'?'selected':''}>Blau (bl)</option>
-                    <option value="dbl" ${w.c==='dbl'?'selected':''}>Dunkelblau (dbl)</option>
-                    <option value="dblws" ${w.c==='dblws'?'selected':''}>Dunkelblau-Weiß (dblws)</option>
-                    <option value="br" ${w.c==='br'?'selected':''}>Braun (br)</option>
-                    <option value="gnge" ${w.c==='gnge'?'selected':''}>Grün-Gelb (gnge)</option>
-                    <option value="rt" ${w.c==='rt'?'selected':''}>Rot (rt)</option>
-                    <option value="gr" ${w.c==='gr'?'selected':''}>Grau (gr)</option>
-                    <option value="or" ${w.c==='or'?'selected':''}>Orange (or)</option>
-                    <option value="ws" ${w.c==='ws'?'selected':''}>Weiß (ws)</option>
-                </select></td>
-                <td><input type="text" class="wire-cross" value="${w.cr}"></td>
-                <td><input type="text" class="wire-label-s" value="${w.s}" placeholder="z.B. F1"></td>
-                <td><input type="text" class="wire-label-e" value="${w.e}" placeholder="z.B. X1.1"></td>
-                <td><button class="action-btn" onclick="this.parentElement.parentElement.remove()" style="background: var(--danger); width: 24px; height: 24px; font-size: 12px;">✕</button></td>
-            </tr>`;
-        });
+        if (pattern.wires && pattern.wires.length > 0) {
+            pattern.wires.forEach((w, idx) => {
+                tbody.innerHTML += `<tr>
+                    <td>${idx + 1}</td>
+                    <td><input type="text" class="wire-type" value="${(w.t || '').replace(/"/g, '&quot;')}"></td>
+                    <td><select class="wire-color">
+                        <option value="bk" ${w.c==='bk'?'selected':''}>Schwarz (bk)</option>
+                        <option value="bl" ${w.c==='bl'?'selected':''}>Blau (bl)</option>
+                        <option value="dbl" ${w.c==='dbl'?'selected':''}>Dunkelblau (dbl)</option>
+                        <option value="dblws" ${w.c==='dblws'?'selected':''}>Dunkelblau-Weiß (dblws)</option>
+                        <option value="br" ${w.c==='br'?'selected':''}>Braun (br)</option>
+                        <option value="gnge" ${w.c==='gnge'?'selected':''}>Grün-Gelb (gnge)</option>
+                        <option value="rt" ${w.c==='rt'?'selected':''}>Rot (rt)</option>
+                        <option value="gr" ${w.c==='gr'?'selected':''}>Grau (gr)</option>
+                        <option value="or" ${w.c==='or'?'selected':''}>Orange (or)</option>
+                        <option value="ws" ${w.c==='ws'?'selected':''}>Weiß (ws)</option>
+                    </select></td>
+                    <td><input type="text" class="wire-cross" value="${(w.cr || '').replace(/"/g, '&quot;')}"></td>
+                    <td><input type="text" class="wire-label-s" value="${(w.s || '').replace(/"/g, '&quot;')}" placeholder="z.B. F1"></td>
+                    <td><input type="text" class="wire-label-e" value="${(w.e || '').replace(/"/g, '&quot;')}" placeholder="z.B. X1.1"></td>
+                </tr>`;
+            });
+        }
+        
+        // NICHT Modal öffnen - nur Daten laden und Zeichnen-Modus starten
+        // Das Modal wird erst beim Speichern geöffnet, damit der Benutzer zeichnen kann
         
         // Starte Zeichnen-Modus
         currentPath = [];
         mode = 'measure';
+        editIndex = -1; // Wichtig: Nicht als normalen Kabelstrang bearbeiten
         document.getElementById('btnMeasure').style.background = 'var(--success)';
         document.getElementById('btnMeasure').textContent = 'Muster zeichnen: ' + pattern.name;
         document.getElementById('drawHint').style.display = 'block';
@@ -1278,6 +1413,84 @@
         openModal();
     }
     
+    function duplicatePattern(i) {
+        const pattern = patternBundles[i];
+        
+        // Erstelle eine tiefe Kopie des Musters
+        const duplicatedPattern = {
+            name: pattern.name + ' (Kopie)',
+            color: pattern.color,
+            len: pattern.len || 0,
+            pS: pattern.pS || 0,
+            pE: pattern.pE || 0,
+            path: [],
+            wires: pattern.wires ? pattern.wires.map(w => ({
+                t: w.t || '',
+                c: w.c || 'bk',
+                cr: w.cr || '',
+                s: w.s || '',
+                e: w.e || ''
+            })) : []
+        };
+        
+        // Füge das duplizierte Muster hinzu
+        patternBundles.push(duplicatedPattern);
+        updatePatternList();
+        
+        // Öffne das Modal zum Bearbeiten des duplizierten Musters
+        selectedPatternIndex = patternBundles.length - 1;
+        isPatternMode = true;
+        editIndex = -1; // Wichtig: Nicht als normalen Kabelstrang bearbeiten
+        
+        // Lade Muster-Daten in das Modal
+        document.getElementById('bundleName').value = duplicatedPattern.name;
+        document.getElementById('drawColor').value = duplicatedPattern.color;
+        document.getElementById('plusStart').value = duplicatedPattern.pS || 0;
+        document.getElementById('plusEnd').value = duplicatedPattern.pE || 0;
+        
+        // Lade Adern
+        const tbody = document.querySelector("#wireTable tbody");
+        tbody.innerHTML = "";
+        if (duplicatedPattern.wires && duplicatedPattern.wires.length > 0) {
+            duplicatedPattern.wires.forEach((w, idx) => {
+                tbody.innerHTML += `<tr>
+                    <td>${idx + 1}</td>
+                    <td><input type="text" class="wire-type" value="${(w.t || '').replace(/"/g, '&quot;')}"></td>
+                    <td><select class="wire-color">
+                        <option value="bk" ${w.c==='bk'?'selected':''}>Schwarz (bk)</option>
+                        <option value="bl" ${w.c==='bl'?'selected':''}>Blau (bl)</option>
+                        <option value="dbl" ${w.c==='dbl'?'selected':''}>Dunkelblau (dbl)</option>
+                        <option value="dblws" ${w.c==='dblws'?'selected':''}>Dunkelblau-Weiß (dblws)</option>
+                        <option value="br" ${w.c==='br'?'selected':''}>Braun (br)</option>
+                        <option value="gnge" ${w.c==='gnge'?'selected':''}>Grün-Gelb (gnge)</option>
+                        <option value="rt" ${w.c==='rt'?'selected':''}>Rot (rt)</option>
+                        <option value="gr" ${w.c==='gr'?'selected':''}>Grau (gr)</option>
+                        <option value="or" ${w.c==='or'?'selected':''}>Orange (or)</option>
+                        <option value="ws" ${w.c==='ws'?'selected':''}>Weiß (ws)</option>
+                    </select></td>
+                    <td><input type="text" class="wire-cross" value="${(w.cr || '').replace(/"/g, '&quot;')}"></td>
+                    <td><input type="text" class="wire-label-s" value="${(w.s || '').replace(/"/g, '&quot;')}" placeholder="z.B. F1"></td>
+                    <td><input type="text" class="wire-label-e" value="${(w.e || '').replace(/"/g, '&quot;')}" placeholder="z.B. X1.1"></td>
+                </tr>`;
+            });
+        }
+        
+        // Setze wireCount
+        document.getElementById('wireCount').value = duplicatedPattern.wires ? duplicatedPattern.wires.length : 0;
+        
+        // Öffne Modal zum Bearbeiten
+        openModal();
+        
+        // Fokussiere das Name-Feld, damit der Benutzer den Namen direkt ändern kann
+        setTimeout(() => {
+            const nameField = document.getElementById('bundleName');
+            if (nameField) {
+                nameField.focus();
+                nameField.select(); // Markiere den Text, damit er direkt überschrieben werden kann
+            }
+        }, 100);
+    }
+    
     function deletePattern(i) {
         if (confirm("Muster wirklich löschen?")) {
             patternBundles.splice(i, 1);
@@ -1290,13 +1503,36 @@
             alert("Keine Muster zum Exportieren vorhanden!");
             return;
         }
+        
+        // Frage den Benutzer nach dem Dateinamen
+        let fileName = patternListName || 'uwe-muster';
+        const userInput = prompt("Bitte geben Sie den Dateinamen ein (ohne .json):", fileName);
+        
+        if (userInput === null) {
+            // Benutzer hat Abbrechen gedrückt
+            return;
+        }
+        
+        fileName = userInput.trim();
+        if (!fileName) {
+            alert("Bitte geben Sie einen gültigen Dateinamen ein!");
+            return;
+        }
+        
+        // Speichere den Dateinamen als Muster-Listen-Namen
+        patternListName = fileName;
+        updatePatternListTitle();
+        
         try {
-            const dataStr = JSON.stringify({ patterns: patternBundles }, null, 2);
+            const dataStr = JSON.stringify({ 
+                patterns: patternBundles,
+                listName: patternListName 
+            }, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'uwe-muster-' + new Date().toISOString().split('T')[0] + '.json';
+            a.download = fileName + '.json';
             a.click();
             URL.revokeObjectURL(url);
         } catch (e) {
@@ -1314,6 +1550,12 @@
                 const data = JSON.parse(f.target.result);
                 if (data.patterns && Array.isArray(data.patterns)) {
                     patternBundles = data.patterns;
+                    
+                    // Extrahiere den Dateinamen (ohne .json) und verwende ihn als Muster-Listen-Namen
+                    const fileName = file.name.replace(/\.json$/i, '');
+                    patternListName = data.listName || fileName;
+                    
+                    updatePatternListTitle();
                     updatePatternList();
                     alert(`${data.patterns.length} Muster erfolgreich importiert!`);
                 } else {
@@ -1327,7 +1569,17 @@
         event.target.value = ''; // Reset input
     }
     
+    function updatePatternListTitle() {
+        const titleElement = document.getElementById('patternListTitle');
+        if (patternListName) {
+            titleElement.textContent = 'Muster-Liste: ' + patternListName;
+        } else {
+            titleElement.textContent = 'Muster-Liste';
+        }
+    }
+    
     // Initialisiere Muster-Liste beim Start
+    updatePatternListTitle();
     updatePatternList();
 
     function autoFill(cls, inc) {
@@ -1362,10 +1614,10 @@
         };
         try {
             const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
             a.download = (fileName.trim() || defaultName) + ".json";
-            a.click();
+        a.click();
             URL.revokeObjectURL(a.href);
         } catch(err) {
             alert("Fehler beim Speichern: " + err.message);
@@ -1378,11 +1630,11 @@
         reader.onerror = () => alert("Fehler beim Laden der Datei!");
         reader.onload = (e) => {
             try {
-                const data = JSON.parse(e.target.result);
+            const data = JSON.parse(e.target.result);
                 allBundles = data.bundles || [];
                 mmPerPixel = data.mmPerPixel || 0;
                 document.getElementById('realLength').value = data.realLengthValue || 0;
-                document.getElementById('btnMeasure').disabled = false;
+            document.getElementById('btnMeasure').disabled = false;
                 
                 // Bild laden falls vorhanden
                 if (data.imageData) {
@@ -1401,7 +1653,7 @@
                         panX = 0;
                         panY = 0;
                         originalImageSnapshot = ctx.getImageData(0,0,canvas.width, canvas.height);
-                        rebuildDrawing();
+            rebuildDrawing();
                     };
                     img.onerror = () => alert("Fehler beim Laden des Bildes!");
                     img.src = data.imageData;
@@ -1425,7 +1677,7 @@
         allBundles.forEach((b, bi) => {
             if (!b.wires || b.wires.length === 0) return;
             b.wires.forEach((w, wi) => {
-                const len = Math.round(b.len+b.pS+b.pE);
+            const len = Math.round(b.len+b.pS+b.pE);
                 csv += `${bi+1}_${wi+1};${w.s || ''};${b.name || ''};${w.cr || ''};${w.c || ''};${len};${w.s || ''};${w.e || ''};${w.t || ''};Aderendhülse;Aderendhülse;0;${b.name || ''};${b.name || ''}\n`;
             });
         });

@@ -33,6 +33,36 @@
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: white; 
             overflow: hidden;
+            position: relative;
+        }
+        
+        /* Hilfe-Button oben rechts */
+        #helpButton {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #helpButton:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+        #helpButton:active {
+            transform: scale(0.95);
         }
         
         /* Sidebar Design - Modern mit Glassmorphism */
@@ -410,6 +440,9 @@
 </head>
 <body>
 
+<!-- Hilfe-Button oben rechts -->
+<button id="helpButton" onclick="openHelpWindow()" title="Anleitung öffnen">?</button>
+
 <div id="sidebar">
     <div class="brand-container">
         <span class="brand-letter">U</span><span class="brand-suffix">niversal</span>
@@ -472,13 +505,20 @@
     </div>
     
     <div class="step">
-        <h3 style="margin-top: 0;">Muster-Verwaltung</h3>
-        <button class="btn-primary" onclick="openPatternModal()" style="margin-bottom: 10px;">+ Neues Muster</button>
-        <button class="btn-success" onclick="exportPatterns()" style="margin-bottom: 10px;">Muster exportieren</button>
-        <input type="file" id="importPatterns" accept=".json" onchange="importPatterns(event)" style="margin-bottom: 10px;">
-        <label for="importPatterns" style="display: block; text-align: center; padding: 8px; background: var(--card-bg); border-radius: 6px; cursor: pointer; border: 1px solid var(--card-border);">
-            📥 Muster importieren
-        </label>
+        <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; padding: 5px 0;" onclick="togglePatternManagement()">
+            <h3 style="margin: 0;">Muster-Verwaltung</h3>
+            <span id="patternManagementToggle" style="font-size: 1.2em; transition: transform 0.2s;">▼</span>
+        </div>
+        <div id="patternManagementContent" style="margin-top: 15px;">
+            <button class="btn-primary" onclick="openPatternModal()" style="margin-bottom: 10px;">+ Neues Muster</button>
+            <button class="btn-primary" onclick="createPatternGroup()" style="margin-bottom: 10px; background: var(--secondary-light);">+ Neue Gruppe</button>
+            <button class="btn-danger" onclick="deletePatternGroupFromList()" style="margin-bottom: 10px;">Gruppe löschen</button>
+            <button class="btn-success" onclick="exportPatterns()" style="margin-bottom: 10px;">Muster exportieren</button>
+            <input type="file" id="importPatterns" accept=".json" onchange="importPatterns(event)" style="margin-bottom: 10px;">
+            <label for="importPatterns" style="display: block; text-align: center; padding: 8px; background: var(--card-bg); border-radius: 6px; cursor: pointer; border: 1px solid var(--card-border);">
+                📥 Muster importieren
+            </label>
+        </div>
     </div>
     
     <div class="step">
@@ -499,6 +539,12 @@
         <div><label>Strang Name:</label><input type="text" id="bundleName"></div>
         <div><label>Zuschlag Vorn (mm):</label><input type="number" id="plusStart" value="150"></div>
         <div><label>Zuschlag Hinten (mm):</label><input type="number" id="plusEnd" value="150"></div>
+    </div>
+    <div id="patternGroupSelector" style="display:none; margin-bottom:15px;">
+        <label>Gruppe:</label>
+        <select id="patternGroupSelect" style="width:100%; padding:8px; border-radius:6px; background:var(--input-bg); color:var(--text-light); border:1px solid var(--card-border);">
+            <!-- Wird dynamisch gefüllt -->
+        </select>
     </div>
     <div style="background:#f8f9fa; padding:10px; border-radius:5px; margin-bottom:10px; display:flex; gap:10px; align-items:center;">
         <label>Adern:</label>
@@ -534,6 +580,9 @@
     let selectedPatternIndex = -1; // Index des ausgewählten Musters
     let isPatternMode = false; // Ob ein Muster ausgewählt wurde
     let patternListName = ''; // Name der Muster-Liste (Dateiname)
+    let patternGroups = []; // Array für Muster-Gruppen [{id: string, name: string, collapsed: boolean}]
+    let collapsedGroups = {}; // Objekte für auf-/zuklappbare Gruppen {groupId: boolean}
+    let patternManagementCollapsed = false; // Ob die Muster-Verwaltung zugeklappt ist
     let autoFitToWindow = true; // Automatische Bildskalierung auf Fenstergröße
     let imageScale = 1, imageOffsetX = 0, imageOffsetY = 0; // Für Bild-Skalierung
 
@@ -976,6 +1025,11 @@
         document.getElementById('modal').style.display = 'block';
         document.getElementById('overlay').style.display = 'block';
         
+        // Verstecke Gruppenauswahl für normale Kabelstränge
+        if (!isPatternMode) {
+            document.getElementById('patternGroupSelector').style.display = 'none';
+        }
+        
         // Wenn Muster-Modus aktiv, überschreibe die Daten NICHT (sie sind bereits in selectPattern() geladen)
         if (isPatternMode && selectedPatternIndex >= 0) {
             // Daten sind bereits geladen, nichts überschreiben
@@ -1096,6 +1150,14 @@
                 // Muster wurde nur bearbeitet (ohne zu zeichnen) - speichere als Muster ohne Pfad
                 const patternBundle = { ...b };
                 patternBundle.path = []; // Muster haben keinen Pfad
+                // Setze die ausgewählte Gruppe
+                const selectedGroupId = document.getElementById('patternGroupSelect') ? document.getElementById('patternGroupSelect').value : null;
+                if (selectedGroupId) {
+                    patternBundle.groupId = selectedGroupId;
+                } else {
+                    // Behalte die alte Gruppe
+                    patternBundle.groupId = patternBundles[selectedPatternIndex].groupId;
+                }
                 patternBundles[selectedPatternIndex] = patternBundle;
                 updatePatternList();
                 // Früh beenden, da Muster gespeichert wurde
@@ -1115,6 +1177,14 @@
             // Neues Muster speichern (ohne Pfad, nur Vorlage)
             const patternBundle = { ...b };
             patternBundle.path = []; // Muster haben keinen Pfad
+            // Setze die ausgewählte Gruppe
+            const selectedGroupId = document.getElementById('patternGroupSelect') ? document.getElementById('patternGroupSelect').value : null;
+            if (selectedGroupId) {
+                patternBundle.groupId = selectedGroupId;
+            } else if (patternGroups.length > 0) {
+                // Fallback: erste Gruppe verwenden
+                patternBundle.groupId = patternGroups[0].id;
+            }
             patternBundles.push(patternBundle);
             updatePatternList();
             isPatternMode = false;
@@ -1274,33 +1344,167 @@
     function updatePatternList() {
         const container = document.getElementById('patternContainer');
         container.innerHTML = "";
-        if (patternBundles.length === 0) {
+        
+        // Wenn keine Gruppen vorhanden, erstelle eine Standard-Gruppe
+        if (patternGroups.length === 0) {
+            const defaultGroupId = 'group_' + Date.now();
+            patternGroups.push({ id: defaultGroupId, name: 'Standard', collapsed: false });
+            // Ordne alle vorhandenen Muster der Standard-Gruppe zu
+            patternBundles.forEach(p => {
+                if (!p.groupId) p.groupId = defaultGroupId;
+            });
+        }
+        
+        if (patternBundles.length === 0 && patternGroups.length === 0) {
             container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px;">Keine Muster vorhanden</div>';
             return;
         }
-        patternBundles.forEach((p, i) => {
-            container.innerHTML += `<div class="bundle-item" style="margin-bottom: 10px; ${selectedPatternIndex === i ? 'border: 2px solid var(--primary);' : ''}">
-                <div class="bundle-info" style="flex: 1; min-width: 0; overflow: hidden;">
-                    <div class="color-dot" style="background: ${p.color}; flex-shrink: 0;"></div>
-                    <div style="flex: 1; min-width: 0; overflow: hidden;">
-                        <div style="word-wrap: break-word; overflow-wrap: break-word;"><strong>${p.name}</strong></div>
-                        <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">
-                            ${p.wires ? p.wires.length : 0} Ader(n) | ${p.len ? p.len.toFixed(0) : '?'}mm
+        
+        // Zeige Gruppen an
+        patternGroups.forEach((group, groupIdx) => {
+            // Standardmäßig alle Gruppen zugeklappt (true), außer sie wurden explizit geöffnet
+            const isCollapsed = collapsedGroups[group.id] !== undefined ? collapsedGroups[group.id] : true;
+            const groupPatterns = patternBundles.filter(p => p.groupId === group.id);
+            
+            container.innerHTML += `
+                <div class="pattern-group" style="margin-bottom: 10px; border: 1px solid var(--card-border); border-radius: 8px; background: rgba(255,255,255,0.05);">
+                    <div class="pattern-group-header" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; cursor: pointer; user-select: none;" onclick="togglePatternGroup('${group.id}')">
+                        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                            <span style="font-size: 1.2em;">${isCollapsed ? '▶' : '▼'}</span>
+                            <strong style="flex: 1;">${group.name}</strong>
+                            <span style="font-size: 0.85em; color: #94a3b8;">(${groupPatterns.length} Muster)</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="action-btn" onclick="event.stopPropagation(); renamePatternGroup('${group.id}')" title="Gruppe umbenennen" style="background: var(--primary); font-size: 12px; padding: 4px 8px;">✎</button>
+                            <button class="action-btn" onclick="event.stopPropagation(); deletePatternGroup('${group.id}')" title="Gruppe löschen" style="background: var(--danger); font-size: 12px; padding: 4px 8px;">✕</button>
                         </div>
                     </div>
-                </div>
-                <div class="bundle-actions" style="flex-direction: column; gap: 4px; flex-shrink: 0;">
-                    <div style="display: flex; gap: 4px;">
-                        <button class="action-btn" onclick="selectPattern(${i})" title="Muster auswählen" style="background: var(--success);">✓</button>
-                        <button class="action-btn" onclick="duplicatePattern(${i})" title="Duplizieren" style="background: var(--primary);">📋</button>
+                    <div class="pattern-group-content" style="display: ${isCollapsed ? 'none' : 'block'}; padding: 0 10px 10px 10px;">
+                        ${groupPatterns.length === 0 ? 
+                            '<div style="text-align: center; color: #94a3b8; padding: 10px; font-size: 0.9em;">Keine Muster in dieser Gruppe</div>' :
+                            groupPatterns.map((p, idx) => {
+                                const globalIndex = patternBundles.findIndex(b => b === p);
+                                return `<div class="bundle-item" style="margin-top: 8px; ${selectedPatternIndex === globalIndex ? 'border: 2px solid var(--primary);' : ''}">
+                                    <div class="bundle-info" style="flex: 1; min-width: 0; overflow: hidden;">
+                                        <div class="color-dot" style="background: ${p.color}; flex-shrink: 0;"></div>
+                                        <div style="flex: 1; min-width: 0; overflow: hidden;">
+                                            <div style="word-wrap: break-word; overflow-wrap: break-word;"><strong>${p.name}</strong></div>
+                                            <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">
+                                                ${p.wires ? p.wires.length : 0} Ader(n) | ${p.len ? p.len.toFixed(0) : '?'}mm
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bundle-actions" style="flex-direction: column; gap: 4px; flex-shrink: 0;">
+                                        <div style="display: flex; gap: 4px;">
+                                            <button class="action-btn" onclick="selectPattern(${globalIndex})" title="Muster auswählen" style="background: var(--success);">✓</button>
+                                            <button class="action-btn" onclick="duplicatePattern(${globalIndex})" title="Duplizieren" style="background: var(--primary);">📋</button>
+                                        </div>
+                                        <div style="display: flex; gap: 4px;">
+                                            <button class="action-btn" onclick="editPattern(${globalIndex})" title="Bearbeiten">✎</button>
+                                            <button class="action-btn" onclick="deletePattern(${globalIndex})" style="background: var(--danger)" title="Löschen">✕</button>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            }).join('')
+                        }
                     </div>
-                    <div style="display: flex; gap: 4px;">
-                        <button class="action-btn" onclick="editPattern(${i})" title="Bearbeiten">✎</button>
-                        <button class="action-btn" onclick="deletePattern(${i})" style="background: var(--danger)" title="Löschen">✕</button>
-                    </div>
                 </div>
-            </div>`;
+            `;
         });
+    }
+    
+    function togglePatternGroup(groupId) {
+        collapsedGroups[groupId] = !collapsedGroups[groupId];
+        updatePatternList();
+    }
+    
+    function togglePatternManagement() {
+        patternManagementCollapsed = !patternManagementCollapsed;
+        const content = document.getElementById('patternManagementContent');
+        const toggle = document.getElementById('patternManagementToggle');
+        
+        if (patternManagementCollapsed) {
+            content.style.display = 'none';
+            toggle.textContent = '▶';
+        } else {
+            content.style.display = 'block';
+            toggle.textContent = '▼';
+        }
+    }
+    
+    function createPatternGroup() {
+        const groupName = prompt("Bitte geben Sie den Namen der neuen Gruppe ein:");
+        if (!groupName || !groupName.trim()) {
+            return;
+        }
+        const groupId = 'group_' + Date.now();
+        patternGroups.push({ id: groupId, name: groupName.trim(), collapsed: false });
+        updatePatternList();
+    }
+    
+    function renamePatternGroup(groupId) {
+        const group = patternGroups.find(g => g.id === groupId);
+        if (!group) return;
+        const newName = prompt("Bitte geben Sie den neuen Namen ein:", group.name);
+        if (newName && newName.trim()) {
+            group.name = newName.trim();
+            updatePatternList();
+        }
+    }
+    
+    function deletePatternGroup(groupId) {
+        const group = patternGroups.find(g => g.id === groupId);
+        if (!group) return;
+        const groupPatterns = patternBundles.filter(p => p.groupId === groupId);
+        
+        if (groupPatterns.length > 0) {
+            if (!confirm(`Die Gruppe "${group.name}" enthält ${groupPatterns.length} Muster. Möchten Sie die Gruppe wirklich löschen? Die Muster werden ebenfalls gelöscht.`)) {
+                return;
+            }
+            // Lösche alle Muster dieser Gruppe
+            groupPatterns.forEach(p => {
+                const index = patternBundles.indexOf(p);
+                if (index > -1) patternBundles.splice(index, 1);
+            });
+        }
+        
+        // Lösche die Gruppe
+        const groupIndex = patternGroups.indexOf(group);
+        if (groupIndex > -1) patternGroups.splice(groupIndex, 1);
+        
+        // Wenn keine Gruppen mehr vorhanden, erstelle Standard-Gruppe
+        if (patternGroups.length === 0) {
+            const defaultGroupId = 'group_' + Date.now();
+            patternGroups.push({ id: defaultGroupId, name: 'Standard', collapsed: false });
+        }
+        
+        updatePatternList();
+    }
+    
+    function deletePatternGroupFromList() {
+        if (patternGroups.length === 0) {
+            alert("Keine Gruppen vorhanden!");
+            return;
+        }
+        
+        // Erstelle Auswahl-Liste
+        let groupList = "Bitte wählen Sie die zu löschende Gruppe:\n\n";
+        patternGroups.forEach((group, index) => {
+            const groupPatterns = patternBundles.filter(p => p.groupId === group.id);
+            groupList += `${index + 1}. ${group.name} (${groupPatterns.length} Muster)\n`;
+        });
+        
+        const selection = prompt(groupList + "\nGeben Sie die Nummer ein:");
+        if (!selection) return;
+        
+        const selectedIndex = parseInt(selection) - 1;
+        if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= patternGroups.length) {
+            alert("Ungültige Auswahl!");
+            return;
+        }
+        
+        const selectedGroup = patternGroups[selectedIndex];
+        deletePatternGroup(selectedGroup.id);
     }
     
     function selectPattern(i) {
@@ -1371,7 +1575,30 @@
         document.getElementById('plusStart').value = 0;
         document.getElementById('plusEnd').value = 0;
         document.querySelector("#wireTable tbody").innerHTML = "";
+        
+        // Zeige Gruppenauswahl und fülle sie
+        updatePatternGroupSelector();
+        document.getElementById('patternGroupSelector').style.display = 'block';
+        
         openModal();
+    }
+    
+    function updatePatternGroupSelector() {
+        const select = document.getElementById('patternGroupSelect');
+        select.innerHTML = '';
+        
+        // Wenn keine Gruppen vorhanden, erstelle eine Standard-Gruppe
+        if (patternGroups.length === 0) {
+            const defaultGroupId = 'group_' + Date.now();
+            patternGroups.push({ id: defaultGroupId, name: 'Standard', collapsed: false });
+        }
+        
+        patternGroups.forEach(group => {
+            const option = document.createElement('option');
+            option.value = group.id;
+            option.textContent = group.name;
+            select.appendChild(option);
+        });
     }
     
     function editPattern(i) {
@@ -1409,6 +1636,15 @@
                 <td><button class="action-btn" onclick="this.parentElement.parentElement.remove()" style="background: var(--danger); width: 24px; height: 24px; font-size: 12px;">✕</button></td>
             </tr>`;
         });
+        
+        // Zeige Gruppenauswahl und setze die aktuelle Gruppe
+        updatePatternGroupSelector();
+        document.getElementById('patternGroupSelector').style.display = 'block';
+        if (pattern.groupId) {
+            document.getElementById('patternGroupSelect').value = pattern.groupId;
+        } else if (patternGroups.length > 0) {
+            document.getElementById('patternGroupSelect').value = patternGroups[0].id;
+        }
         
         openModal();
     }
@@ -1478,6 +1714,13 @@
         // Setze wireCount
         document.getElementById('wireCount').value = duplicatedPattern.wires ? duplicatedPattern.wires.length : 0;
         
+        // Zeige Gruppenauswahl und setze die Gruppe des Original-Musters
+        updatePatternGroupSelector();
+        document.getElementById('patternGroupSelector').style.display = 'block';
+        if (pattern.groupId) {
+            document.getElementById('patternGroupSelect').value = pattern.groupId;
+        }
+        
         // Öffne Modal zum Bearbeiten
         openModal();
         
@@ -1526,6 +1769,7 @@
         try {
             const dataStr = JSON.stringify({ 
                 patterns: patternBundles,
+                groups: patternGroups,
                 listName: patternListName 
             }, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -1551,13 +1795,25 @@
                 if (data.patterns && Array.isArray(data.patterns)) {
                     patternBundles = data.patterns;
                     
+                    // Lade Gruppen, falls vorhanden
+                    if (data.groups && Array.isArray(data.groups)) {
+                        patternGroups = data.groups;
+                    } else {
+                        // Fallback: Erstelle Standard-Gruppe für alle Muster ohne Gruppe
+                        const defaultGroupId = 'group_' + Date.now();
+                        patternGroups = [{ id: defaultGroupId, name: 'Standard', collapsed: false }];
+                        patternBundles.forEach(p => {
+                            if (!p.groupId) p.groupId = defaultGroupId;
+                        });
+                    }
+                    
                     // Extrahiere den Dateinamen (ohne .json) und verwende ihn als Muster-Listen-Namen
                     const fileName = file.name.replace(/\.json$/i, '');
                     patternListName = data.listName || fileName;
                     
                     updatePatternListTitle();
                     updatePatternList();
-                    alert(`${data.patterns.length} Muster erfolgreich importiert!`);
+                    alert(`${data.patterns.length} Muster in ${patternGroups.length} Gruppe(n) erfolgreich importiert!`);
                 } else {
                     alert("Ungültiges Dateiformat!");
                 }
@@ -1579,6 +1835,11 @@
     }
     
     // Initialisiere Muster-Liste beim Start
+    // Erstelle Standard-Gruppe, falls keine vorhanden
+    if (patternGroups.length === 0) {
+        const defaultGroupId = 'group_' + Date.now();
+        patternGroups.push({ id: defaultGroupId, name: 'Standard', collapsed: false });
+    }
     updatePatternListTitle();
     updatePatternList();
 
@@ -1749,6 +2010,331 @@
         a.href = tempCanvas.toDataURL('image/png'); 
         a.download = "UWE_Doku_" + new Date().toISOString().split('T')[0] + ".png"; 
         a.click();
+    }
+    
+    // ========== Hilfe/Anleitung Funktionen ==========
+    
+    function openHelpWindow() {
+        const helpWindow = window.open('', 'UWE_Anleitung', 'width=800,height=700,scrollbars=yes,resizable=yes');
+        if (!helpWindow) {
+            alert('Bitte erlauben Sie Popups für diese Seite, um die Anleitung zu öffnen.');
+            return;
+        }
+        
+        helpWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="de">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>UWE - Anleitung</title>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body {
+                        font-family: 'Inter', sans-serif;
+                        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                        color: white;
+                        padding: 30px;
+                        line-height: 1.6;
+                    }
+                    .container {
+                        max-width: 750px;
+                        margin: 0 auto;
+                        background: rgba(30, 41, 59, 0.9);
+                        padding: 30px;
+                        border-radius: 12px;
+                        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    }
+                    h1 {
+                        color: #6366f1;
+                        margin-bottom: 10px;
+                        font-size: 2em;
+                        border-bottom: 2px solid rgba(99, 102, 241, 0.3);
+                        padding-bottom: 10px;
+                    }
+                    h2 {
+                        color: #8b5cf6;
+                        margin-top: 25px;
+                        margin-bottom: 15px;
+                        font-size: 1.4em;
+                    }
+                    h3 {
+                        color: #a78bfa;
+                        margin-top: 20px;
+                        margin-bottom: 10px;
+                        font-size: 1.2em;
+                    }
+                    p {
+                        margin-bottom: 12px;
+                    }
+                    ul, ol {
+                        margin-left: 25px;
+                        margin-bottom: 15px;
+                    }
+                    li {
+                        margin-bottom: 8px;
+                    }
+                    .section {
+                        margin-bottom: 30px;
+                        padding: 20px;
+                        background: rgba(255,255,255,0.05);
+                        border-radius: 8px;
+                        border-left: 4px solid #6366f1;
+                    }
+                    .highlight {
+                        background: rgba(99, 102, 241, 0.2);
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-weight: 600;
+                    }
+                    code {
+                        background: rgba(0,0,0,0.3);
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 0.9em;
+                    }
+                    .tip {
+                        background: rgba(16, 185, 129, 0.2);
+                        border-left: 4px solid #10b981;
+                        padding: 12px;
+                        margin: 15px 0;
+                        border-radius: 4px;
+                    }
+                    .warning {
+                        background: rgba(239, 68, 68, 0.2);
+                        border-left: 4px solid #ef4444;
+                        padding: 12px;
+                        margin: 15px 0;
+                        border-radius: 4px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>📘 UWE - Universal Wiring Engine</h1>
+                    <p><strong>Anleitung zur Verwendung der Anwendung</strong></p>
+                    
+                    <div class="section">
+                        <h2>1. Grundlagen</h2>
+                        <p>UWE ist eine professionelle Anwendung zur Erfassung und Dokumentation von Kabelbäumen mit Maßstab-Messung und verschiedenen Export-Funktionen.</p>
+                        
+                        <h3>1.1 Bild laden</h3>
+                        <ol>
+                            <li>Klicken Sie auf <span class="highlight">"Bild auswählen"</span> im ersten Schritt</li>
+                            <li>Wählen Sie eine Bilddatei von Ihrem Computer</li>
+                            <li>Das Bild wird automatisch geladen und angezeigt</li>
+                        </ol>
+                        
+                        <h3>1.2 Maßstab festlegen</h3>
+                        <ol>
+                            <li>Messen Sie eine bekannte Länge im Bild (z.B. mit einem Lineal am Bildschirm)</li>
+                            <li>Geben Sie die Länge in <span class="highlight">Millimetern (mm)</span> ein</li>
+                            <li>Klicken Sie auf <span class="highlight">"Maßstab festlegen"</span></li>
+                            <li>Zeichnen Sie eine Linie im Bild über die gemessene Strecke</li>
+                            <li>Bestätigen Sie mit <span class="highlight">"Maßstab bestätigen ✓"</span></li>
+                        </ol>
+                        <div class="tip">
+                            💡 <strong>Tipp:</strong> Je länger die Referenzstrecke, desto genauer wird der Maßstab!
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>2. Kabelstränge zeichnen</h2>
+                        <h3>2.1 Kabelstrang erstellen</h3>
+                        <ol>
+                            <li>Wählen Sie eine <span class="highlight">Farbe</span> für den Kabelstrang</li>
+                            <li>Klicken Sie auf <span class="highlight">"Kabelstrang zeichnen"</span></li>
+                            <li>Klicken Sie mit der Maus im Bild, um Punkte zu setzen</li>
+                            <li><strong>Doppelklick</strong> beendet das Zeichnen</li>
+                            <li>Geben Sie im geöffneten Dialog den <span class="highlight">Namen</span> ein</li>
+                            <li>Fügen Sie <span class="highlight">Zuschläge</span> (Vorn/Hinten in mm) hinzu</li>
+                            <li>Definieren Sie die <span class="highlight">Adern</span> mit Typ, Farbe, Querschnitt (mm²) und Bezeichnungen</li>
+                            <li>Klicken Sie auf <span class="highlight">"Speichern"</span></li>
+                        </ol>
+                        <div class="tip">
+                            💡 <strong>Tipp:</strong> Doppelklick beendet das Zeichnen eines Kabelstrangs automatisch!
+                        </div>
+                        
+                        <h3>2.2 Kabelstrang bearbeiten</h3>
+                        <ul>
+                            <li>Klicken Sie auf <span class="highlight">✎</span> (Bearbeiten) in der Kabelstrang-Liste</li>
+                            <li>Ändern Sie die gewünschten Werte</li>
+                            <li>Speichern Sie die Änderungen</li>
+                        </ul>
+                        
+                        <h3>2.3 Kabelstrang neu zeichnen</h3>
+                        <ul>
+                            <li>Klicken Sie auf <span class="highlight">↻</span> (Neu zeichnen)</li>
+                            <li>Zeichnen Sie einen neuen Pfad</li>
+                            <li>Alle anderen Daten (Name, Adern, etc.) bleiben erhalten</li>
+                        </ul>
+                        
+                        <h3>2.4 Kabelstrang duplizieren</h3>
+                        <ul>
+                            <li>Klicken Sie auf <span class="highlight">📋</span> (Duplizieren)</li>
+                            <li>Der Kabelstrang wird kopiert und zum Bearbeiten geöffnet</li>
+                            <li>Ändern Sie den Namen und speichern Sie</li>
+                        </ul>
+                        
+                        <h3>2.5 Farbe ändern</h3>
+                        <ul>
+                            <li>Klicken Sie auf den <span class="highlight">Farbpunkt</span> neben dem Kabelstrang-Namen</li>
+                            <li>Wählen Sie eine neue Farbe aus dem Farbwähler</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>3. Navigation im Bild</h2>
+                        <h3>3.1 Zoomen</h3>
+                        <ul>
+                            <li>Verwenden Sie das <span class="highlight">Mausrad</span> zum Zoomen</li>
+                            <li>Das Bild zoomt zum Mauszeiger hin (Zoom-Zentrum am Mauszeiger)</li>
+                            <li>Zoom-Bereich: 10% bis 500%</li>
+                        </ul>
+                        
+                        <h3>3.2 Verschieben (Panning)</h3>
+                        <ul>
+                            <li>Halten Sie die <span class="highlight">mittlere Maustaste</span> gedrückt</li>
+                            <li>Bewegen Sie die Maus, um das Bild zu verschieben</li>
+                        </ul>
+                        
+                        <h3>3.3 Bild automatisch an Fenster anpassen</h3>
+                        <ul>
+                            <li>Aktivieren Sie die <span class="highlight">Checkbox "Bild wird automatisch an Fenster angepasst"</span></li>
+                            <li>Das Bild wird automatisch skaliert, um optimal in das Fenster zu passen</li>
+                            <li>Zum Zurücksetzen die Checkbox deaktivieren</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>4. Muster-Kabelstränge</h2>
+                        <h3>4.1 Muster erstellen</h3>
+                        <ol>
+                            <li>Klicken Sie auf <span class="highlight">"+ Neues Muster"</span></li>
+                            <li>Geben Sie alle Daten ein (Name, Farbe, Adern, etc.)</li>
+                            <li>Wählen Sie eine <span class="highlight">Gruppe</span> aus oder erstellen Sie eine neue</li>
+                            <li>Speichern Sie das Muster (ohne Pfad - nur Vorlage)</li>
+                        </ol>
+                        
+                        <h3>4.2 Muster auswählen und zeichnen</h3>
+                        <ol>
+                            <li>Klicken Sie auf <span class="highlight">✓</span> (Muster auswählen) bei einem Muster</li>
+                            <li>Alle Muster-Daten werden geladen</li>
+                            <li>Zeichnen Sie den Pfad im Bild (wie bei normalen Kabelsträngen)</li>
+                            <li>Nach dem <strong>Doppelklick</strong> öffnet sich das Modal mit allen Daten</li>
+                            <li>Speichern Sie - der Kabelstrang wird automatisch zur Liste hinzugefügt</li>
+                        </ol>
+                        
+                        <h3>4.3 Gruppen verwalten</h3>
+                        <ul>
+                            <li><strong>Neue Gruppe:</strong> Klicken Sie auf <span class="highlight">"+ Neue Gruppe"</span></li>
+                            <li><strong>Gruppe umbenennen:</strong> Klicken Sie auf <span class="highlight">✎</span> im Gruppen-Header</li>
+                            <li><strong>Gruppe löschen:</strong> Klicken Sie auf <span class="highlight">✕</span> im Gruppen-Header oder verwenden Sie den Button <span class="highlight">"Gruppe löschen"</span></li>
+                            <li><strong>Auf-/Zuklappen:</strong> Klicken Sie auf den Gruppen-Header (▶ = zugeklappt, ▼ = aufgeklappt)</li>
+                        </ul>
+                        <div class="tip">
+                            💡 <strong>Tipp:</strong> Gruppen werden standardmäßig zugeklappt, um die Übersicht zu verbessern!
+                        </div>
+                        
+                        <h3>4.4 Muster duplizieren</h3>
+                        <ul>
+                            <li>Klicken Sie auf <span class="highlight">📋</span> (Duplizieren)</li>
+                            <li>Das Muster wird kopiert und zum Bearbeiten geöffnet</li>
+                            <li>Ändern Sie den Namen und die gewünschten Daten</li>
+                            <li>Wählen Sie eine Gruppe für das duplizierte Muster</li>
+                            <li>Speichern Sie</li>
+                        </ul>
+                        
+                        <h3>4.5 Muster exportieren/importieren</h3>
+                        <ul>
+                            <li><strong>Export:</strong> Klicken Sie auf <span class="highlight">"Muster exportieren"</span> - Dateiname wird abgefragt</li>
+                            <li><strong>Import:</strong> Klicken Sie auf <span class="highlight">"📥 Muster importieren"</span> und wählen Sie eine JSON-Datei</li>
+                            <li>Muster können unabhängig von Projekten gespeichert und geladen werden</li>
+                            <li>Beim Import wird der Dateiname als Titel der Muster-Liste angezeigt</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>5. Projekt-Verwaltung</h2>
+                        <h3>5.1 Projekt speichern</h3>
+                        <ol>
+                            <li>Klicken Sie auf <span class="highlight">"Speichern"</span> im Projekt-Speicher-Bereich</li>
+                            <li>Geben Sie einen Dateinamen ein (Standard wird vorgeschlagen)</li>
+                            <li>Das Projekt wird als JSON-Datei gespeichert</li>
+                            <li><span class="highlight">Enthält:</span> Bild, Maßstab, alle Kabelstränge mit Pfaden und Adern</li>
+                        </ol>
+                        
+                        <h3>5.2 Projekt laden</h3>
+                        <ol>
+                            <li>Klicken Sie auf <span class="highlight">"Laden"</span></li>
+                            <li>Wählen Sie eine gespeicherte Projektdatei (JSON)</li>
+                            <li>Alle Daten werden automatisch geladen</li>
+                        </ol>
+                        <div class="warning">
+                            ⚠️ <strong>Hinweis:</strong> Beim Laden eines Projekts werden alle aktuellen Daten überschrieben!
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>6. Export-Funktionen</h2>
+                        <h3>6.1 Wustec Export (CSV)</h3>
+                        <ul>
+                            <li>Klicken Sie auf <span class="highlight">"Wustec Export (.csv)"</span></li>
+                            <li>Eine CSV-Datei wird heruntergeladen</li>
+                            <li>Enthält alle Kabelstränge mit Adern-Details</li>
+                            <li>Kompatibel mit Wustec-Software</li>
+                        </ul>
+                        
+                        <h3>6.2 Bild & Legende Export</h3>
+                        <ul>
+                            <li>Klicken Sie auf <span class="highlight">"Bild & Legende Export"</span></li>
+                            <li>Ein kombiniertes Bild wird erstellt</li>
+                            <li>Bild wird immer in <strong>Originalgröße</strong> exportiert (unabhängig von Zoom/Einstellungen)</li>
+                            <li>Legende wird rechts neben dem Bild angezeigt</li>
+                            <li>Dateiname enthält automatisch das Datum</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>7. Tastenkürzel & Interaktionen</h2>
+                        <ul>
+                            <li><strong>Mausrad:</strong> Zoomen (zoomt zum Mauszeiger hin)</li>
+                            <li><strong>Mittlere Maustaste:</strong> Bild verschieben (Panning)</li>
+                            <li><strong>Doppelklick:</strong> Zeichnen beenden</li>
+                            <li><strong>Farbpunkt klicken:</strong> Farbe ändern</li>
+                            <li><strong>Button-Hover:</strong> Tooltips mit Beschreibungen anzeigen</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>8. Unterstützte Adern-Farben</h2>
+                        <p>Folgende Farben stehen zur Verfügung:</p>
+                        <ul>
+                            <li>Schwarz (bk), Blau (bl), Dunkelblau (dbl), Dunkelblau-Weiß (dblws)</li>
+                            <li>Braun (br), Grün-Gelb (gnge), Rot (rt)</li>
+                            <li>Grau (gr), Orange (or), Weiß (ws)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>9. Tipps & Best Practices</h2>
+                        <ul>
+                            <li>Speichern Sie regelmäßig Ihre Projekte</li>
+                            <li>Verwenden Sie aussagekräftige Namen für Kabelstränge</li>
+                            <li>Organisieren Sie Muster in Gruppen für bessere Übersicht</li>
+                            <li>Prüfen Sie den Maßstab vor dem Zeichnen</li>
+                            <li>Bei großen Bildern: Nutzen Sie Zoom und Panning</li>
+                            <li>Exportieren Sie Muster für Wiederverwendung in anderen Projekten</li>
+                        </ul>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+        
+        helpWindow.document.close();
     }
 </script>
 </body>

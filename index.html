@@ -1618,9 +1618,12 @@
         // Lade Adern
         const tbody = document.querySelector("#wireTable tbody");
         tbody.innerHTML = "";
-        pattern.wires.forEach(w => {
+        pattern.wires.forEach((w, idx) => {
+            // Gleiche Spaltenstruktur wie in updateWireTable / selectPattern / duplicatePattern:
+            //  # | Typ | Farbe | mm² | Quelle | Ziel | (optional Löschen)
             tbody.innerHTML += `<tr>
-                <td><input type="text" class="wire-type" value="${w.t}"></td>
+                <td>${idx + 1}</td>
+                <td><input type="text" class="wire-type" value="${(w.t || '').replace(/"/g, '&quot;')}"></td>
                 <td><select class="wire-color">
                     <option value="bk" ${w.c==='bk'?'selected':''}>Schwarz (bk)</option>
                     <option value="bl" ${w.c==='bl'?'selected':''}>Blau (bl)</option>
@@ -1634,9 +1637,9 @@
                     <option value="ws" ${w.c==='ws'?'selected':''}>Weiß (ws)</option>
                     <option value="wsbk" ${w.c==='wsbk'?'selected':''}>Weiß-Schwarz (wsbk)</option>
                 </select></td>
-                <td><input type="text" class="wire-cross" value="${w.cr}"></td>
-                <td><input type="text" class="wire-label-s" value="${w.s}" placeholder="z.B. F1"></td>
-                <td><input type="text" class="wire-label-e" value="${w.e}" placeholder="z.B. X1.1"></td>
+                <td><input type="text" class="wire-cross" value="${(w.cr || '').replace(/"/g, '&quot;')}"></td>
+                <td><input type="text" class="wire-label-s" value="${(w.s || '').replace(/"/g, '&quot;')}" placeholder="z.B. F1"></td>
+                <td><input type="text" class="wire-label-e" value="${(w.e || '').replace(/"/g, '&quot;')}" placeholder="z.B. X1.1"></td>
                 <td><button class="action-btn" onclick="this.parentElement.parentElement.remove()" style="background: var(--danger); width: 24px; height: 24px; font-size: 12px;">✕</button></td>
             </tr>`;
         });

@@ -11,164 +11,308 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
         :root { 
-            --primary: #6366f1; 
-            --primary-dark: #4f46e5; 
-            --secondary: #1e293b; 
-            --secondary-light: #334155;
-            --success: #10b981; 
-            --danger: #ef4444; 
-            --warning: #f59e0b; 
-            --light: #f8fafc; 
-            --card-bg: rgba(255,255,255,0.05);
-            --card-border: rgba(255,255,255,0.1);
+            /* Word 2024 Farbpalette */
+            --primary: #0078d4; 
+            --primary-dark: #005a9e; 
+            --primary-hover: #106ebe;
+            --secondary: #323130; 
+            --secondary-light: #605e5c;
+            --success: #107c10; 
+            --danger: #d13438; 
+            --warning: #ffaa44; 
+            --light: #faf9f8; 
+            --card-bg: #ffffff;
+            --card-border: #edebe9;
+            --ribbon-bg: #faf9f8;
+            --ribbon-border: #edebe9;
+            --sidebar-bg: #ffffff;
+            --text-primary: #323130;
+            --text-secondary: #605e5c;
         }
         
         * { box-sizing: border-box; }
         
         body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
             display: flex; 
+            flex-direction: column;
             height: 100vh; 
             margin: 0; 
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: white; 
+            background: #f3f2f1;
+            color: var(--text-primary); 
             overflow: hidden;
             position: relative;
+        }
+        
+        /* Top Ribbon Bar - Word 2024 Style */
+        #ribbonBar {
+            background: var(--ribbon-bg);
+            border-bottom: 1px solid var(--ribbon-border);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 100;
+            flex-shrink: 0;
+        }
+        .ribbon-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            border-right: 1px solid var(--card-border);
+        }
+        .ribbon-group:last-child {
+            border-right: none;
+        }
+        .ribbon-group-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .ribbon-buttons {
+            display: flex;
+            gap: 4px;
+        }
+        .ribbon-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ribbon-btn:hover {
+            background: #edebe9;
+            border-color: #c8c6c4;
+        }
+        .ribbon-btn.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .ribbon-btn.primary:hover {
+            background: var(--primary-hover);
+        }
+        .ribbon-btn.success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+        .ribbon-btn.success:hover {
+            background: #0e6b0e;
+        }
+        
+        /* Ribbon Pop-up Menüs - Word 2024 Style */
+        .ribbon-popup {
+            position: relative;
+            display: inline-block;
+        }
+        .ribbon-popup-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 280px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid var(--card-border);
+            border-radius: 2px;
+            padding: 16px;
+            z-index: 1000;
+            margin-top: 4px;
+        }
+        .ribbon-popup-content.show {
+            display: block;
+        }
+        .ribbon-popup-content label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .ribbon-popup-content input[type="file"],
+        .ribbon-popup-content input[type="number"] {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .ribbon-popup-content .hint {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+        .ribbon-popup-content .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .ribbon-popup-content .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        .ribbon-popup-content .checkbox-group label {
+            margin: 0;
+            font-weight: 400;
+            cursor: pointer;
+        }
+        .ribbon-popup-content button {
+            width: 100%;
+            margin-top: 8px;
         }
         
         /* Hilfe-Button oben rechts */
         #helpButton {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            width: 50px;
-            height: 50px;
+            top: 12px;
+            right: 16px;
+            z-index: 1001;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             color: white;
             border: none;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         #helpButton:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
-        }
-        #helpButton:active {
-            transform: scale(0.95);
+            background: var(--primary-hover);
+            transform: scale(1.05);
         }
         
-        /* Sidebar Design - Modern mit Glassmorphism */
+        /* Main Container - Flex Layout */
+        #appContainer {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Linke Sidebar - Kabelstrang-Erstellung */
         #sidebar { 
-            width: 380px; 
-            padding: 24px; 
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255,255,255,0.1); 
+            width: 320px; 
+            padding: 16px; 
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--card-border); 
             overflow-y: auto; 
             flex-shrink: 0; 
             display: flex; 
             flex-direction: column; 
-            gap: 20px;
-            box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+            gap: 16px;
         }
         
-        /* Rechte Sidebar für Muster */
+        /* Rechte Sidebar - Muster & Archiv */
         #patternSidebar { 
-            width: 350px; 
-            padding: 24px; 
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            border-left: 1px solid rgba(255,255,255,0.1); 
+            width: 320px; 
+            padding: 16px; 
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--card-border); 
             overflow-y: auto; 
             flex-shrink: 0; 
             display: flex; 
             flex-direction: column; 
-            gap: 20px;
-            box-shadow: -4px 0 24px rgba(0,0,0,0.3);
+            gap: 16px;
         }
         
-        #sidebar::-webkit-scrollbar { width: 8px; }
-        #sidebar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
-        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        #sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        #sidebar::-webkit-scrollbar, #patternSidebar::-webkit-scrollbar { 
+            width: 8px; 
+        }
+        #sidebar::-webkit-scrollbar-track, #patternSidebar::-webkit-scrollbar-track { 
+            background: #f3f2f1; 
+        }
+        #sidebar::-webkit-scrollbar-thumb, #patternSidebar::-webkit-scrollbar-thumb { 
+            background: #c8c6c4; 
+            border-radius: 4px; 
+        }
+        #sidebar::-webkit-scrollbar-thumb:hover, #patternSidebar::-webkit-scrollbar-thumb:hover { 
+            background: #a19f9d; 
+        }
         
-        /* Titel Branding - Modern */
+        /* Titel Branding - Word 2024 Style */
         .brand-container { 
-            margin-bottom: 8px; 
-            padding-bottom: 16px; 
-            border-bottom: 2px solid rgba(99, 102, 241, 0.3); 
+            margin-bottom: 12px; 
+            padding-bottom: 12px; 
+            border-bottom: 1px solid var(--card-border); 
         }
         .brand-letter { 
-            font-size: 2em; 
-            font-weight: 700; 
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 1.8em; 
+            font-weight: 600; 
+            color: var(--primary);
             display: inline-block;
-            letter-spacing: -0.5px;
         }
         .brand-suffix { 
-            font-size: 0.95em; 
-            color: #94a3b8; 
-            font-weight: 500; 
-            margin-right: 12px; 
+            font-size: 0.9em; 
+            color: var(--text-secondary); 
+            font-weight: 400; 
+            margin-right: 8px; 
+        }
+        .brand-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .brand-subtitle {
+            font-size: 0.85em;
+            color: var(--text-secondary);
         }
 
-        /* Step Cards - Modern Card Design */
+        /* Step Cards - Word 2024 Style */
         .step { 
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            padding: 20px; 
-            border-radius: 12px; 
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            background: var(--card-bg);
+            padding: 16px; 
+            border-radius: 4px; 
+            border: 1px solid var(--card-border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.15s ease;
         }
         .step:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(99, 102, 241, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .step strong {
             display: block;
-            font-size: 0.95em;
+            font-size: 0.9em;
             font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 12px;
-            letter-spacing: 0.3px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
         }
         
         #main { 
             flex-grow: 1; 
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); 
+            background: #f3f2f1; 
             display: flex; 
             justify-content: center; 
             align-items: center;
             position: relative; 
             overflow: auto; 
-            position: relative; 
         }
         canvas { 
             background: white; 
             cursor: crosshair; 
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--card-border);
             max-width: 100%; 
-            max-height: 95vh; 
+            max-height: 100%; 
             object-fit: contain; 
         }
 
-        /* Modal - Modern Design */
+        /* Modal - Word 2024 Style */
         #overlay { 
             display: none; 
             position: fixed; 
@@ -176,8 +320,7 @@
             left:0; 
             width:100%; 
             height:100%; 
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.4);
             z-index: 999; 
         }
         #modal { 
@@ -189,14 +332,14 @@
             width: 90%; 
             max-width: 1100px; 
             background: white; 
-            color: #333; 
-            padding: 32px; 
-            border-radius: 16px; 
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+            color: var(--text-primary); 
+            padding: 24px; 
+            border-radius: 4px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); 
             z-index: 1000; 
             max-height: 90vh; 
             overflow-y: auto;
-            border: 1px solid rgba(0,0,0,0.1);
+            border: 1px solid var(--card-border);
         }
         #modal::-webkit-scrollbar { width: 10px; }
         #modal::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 5px; }
@@ -219,52 +362,54 @@
             color: #334155; 
         }
         th { 
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: #faf9f8;
             font-weight: 600;
-            color: #1e293b;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--card-border);
         }
-        tr:hover { background: #f8fafc; }
+        tr:hover { background: #faf9f8; }
         
         input[type="text"], input[type="number"], select { 
             width: 100%; 
-            padding: 10px 12px; 
+            padding: 6px 10px; 
             box-sizing: border-box; 
-            border: 2px solid #e2e8f0; 
-            border-radius: 8px; 
+            border: 1px solid var(--card-border); 
+            border-radius: 2px; 
             font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.2s ease;
+            font-family: 'Segoe UI', sans-serif;
+            transition: all 0.15s ease;
             background: white;
+            color: var(--text-primary);
         }
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 0 1px var(--primary);
         }
         input[type="color"] {
-            height: 44px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
+            height: 36px;
+            border: 1px solid var(--card-border);
+            border-radius: 2px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
         input[type="color"]:hover {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
         input[type="file"] {
-            padding: 10px;
-            border: 2px dashed #cbd5e1;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
-            color: white;
+            padding: 8px;
+            border: 1px dashed var(--card-border);
+            border-radius: 2px;
+            background: white;
+            color: var(--text-primary);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
             width: 100%;
+            font-size: 13px;
         }
         input[type="file"]:hover {
             border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
+            background: #faf9f8;
         }
         input[type="checkbox"] {
             width: 18px;
@@ -278,82 +423,85 @@
             background: var(--primary); 
             color: white; 
             border: none; 
-            border-radius: 6px; 
-            padding: 4px 10px; 
+            border-radius: 2px; 
+            padding: 2px 8px; 
             font-size: 11px; 
             cursor: pointer; 
             float: right; 
             margin-top: 2px;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            font-weight: 400;
+            transition: all 0.15s ease;
         }
         .fill-btn:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+            background: var(--primary-hover);
         }
         
         button { 
-            padding: 12px 20px; 
-            border-radius: 8px; 
-            border: none; 
-            font-weight: 600; 
+            padding: 8px 16px; 
+            border-radius: 2px; 
+            border: 1px solid var(--card-border); 
+            font-weight: 400; 
             cursor: pointer; 
-            transition: all 0.2s ease;
-            font-family: 'Inter', sans-serif;
+            transition: all 0.15s ease;
+            font-family: 'Segoe UI', sans-serif;
             font-size: 14px;
-            letter-spacing: 0.3px;
+            background: white;
+            color: var(--text-primary);
         }
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            background: #f3f2f1;
+            border-color: var(--primary);
         }
         button:active {
-            transform: translateY(0);
+            background: #edebe9;
         }
         .btn-primary { 
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             color: white; 
+            border-color: var(--primary);
             width: 100%;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
         .btn-primary:hover {
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
         }
         .btn-success { 
-            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            background: var(--success);
             color: white; 
+            border-color: var(--success);
             width: 100%;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
         .btn-success:hover {
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+            background: #0e6b0e;
+            border-color: #0e6b0e;
         }
         .btn-danger { 
-            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            background: var(--danger);
             color: white; 
+            border-color: var(--danger);
             width: 100%;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover {
+            background: #b02a2e;
+            border-color: #b02a2e;
         }
         
-        /* Liste in Sidebar - Modern Cards */
+        /* Liste in Sidebar - Word 2024 Style */
         .bundle-item { 
-            background: rgba(255,255,255,0.08);
-            backdrop-filter: blur(10px);
-            padding: 14px; 
-            border-radius: 10px; 
-            margin-top: 8px; 
+            background: var(--card-bg);
+            padding: 12px; 
+            border-radius: 2px; 
+            margin-top: 6px; 
             display: flex; 
             align-items: center; 
             justify-content: space-between; 
             font-size: 0.9em;
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.2s ease;
+            border: 1px solid var(--card-border);
+            transition: all 0.15s ease;
         }
         .bundle-item:hover {
-            background: rgba(255,255,255,0.12);
-            border-color: rgba(99, 102, 241, 0.3);
-            transform: translateX(4px);
+            background: #faf9f8;
+            border-color: var(--primary);
         }
         .bundle-info { 
             display: flex; 
@@ -366,58 +514,41 @@
             gap: 6px; 
         }
         .action-btn { 
-            padding: 6px; 
-            font-size: 14px; 
-            background: rgba(255,255,255,0.1);
-            color: white; 
-            border-radius: 6px; 
+            padding: 4px 8px; 
+            font-size: 13px; 
+            background: white;
+            color: var(--text-primary); 
+            border-radius: 2px; 
             cursor: pointer; 
-            width: 32px; 
-            height: 32px; 
+            width: 28px; 
+            height: 28px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.2s ease;
+            border: 1px solid var(--card-border);
+            transition: all 0.15s ease;
         }
         .action-btn:hover {
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: #f3f2f1;
+            border-color: var(--primary);
         }
         .color-dot { 
-            width: 14px; 
-            height: 14px; 
+            width: 16px; 
+            height: 16px; 
             border-radius: 50%; 
-            border: 2px solid rgba(255,255,255,0.3);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid var(--card-border);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
         .color-dot:hover {
-            transform: scale(1.2);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
-        
-        /* Special Step Styling */
-        .step[style*="background: #27ae60"] {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        .step[style*="background: #27ae60"] button {
-            background: white;
-            color: var(--success);
-            font-weight: 600;
-        }
-        .step[style*="background: #27ae60"] button:hover {
-            background: var(--success);
-            color: white;
+            transform: scale(1.15);
+            border-color: var(--primary);
         }
         
         /* Label Styling */
         label {
-            font-weight: 500;
-            color: #cbd5e1;
+            font-weight: 400;
+            color: var(--text-primary);
             font-size: 0.9em;
             margin-bottom: 6px;
             display: block;
@@ -425,57 +556,122 @@
         
         /* Hint Text */
         #drawHint {
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-size: 0.85em;
         }
         
         /* Project List Header */
         #project-list strong {
-            font-size: 1em;
+            font-size: 0.95em;
             font-weight: 600;
-            color: #e2e8f0;
-            letter-spacing: 0.3px;
+            color: var(--text-primary);
         }
     </style>
 </head>
 <body>
 
+<!-- Top Ribbon Bar - Word 2024 Style -->
+<div id="ribbonBar">
+    <div class="ribbon-group">
+        <div style="display: flex; flex-direction: column;">
+            <div class="ribbon-group-title">Datei</div>
+            <div class="ribbon-buttons">
+                <button class="ribbon-btn primary" onclick="saveProjectJSON()" title="Projekt speichern">
+                    💾 Speichern
+                </button>
+                <button class="ribbon-btn" onclick="document.getElementById('loadProject').click()" title="Projekt laden">
+                    📂 Laden
+                </button>
+                <input type="file" id="loadProject" style="display:none" accept=".json" onchange="loadProjectJSON(event)">
+            </div>
+        </div>
+    </div>
+    
+    <div class="ribbon-group">
+        <div style="display: flex; flex-direction: column;">
+            <div class="ribbon-group-title">Export</div>
+            <div class="ribbon-buttons">
+                <button class="ribbon-btn success" onclick="exportWustec()" title="Wustec CSV Export">
+                    📊 Wustec (.csv)
+                </button>
+                <button class="ribbon-btn" onclick="exportVisual()" title="Bild & Legende Export">
+                    🖼️ Bild & Legende
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ribbon-group">
+        <div style="display: flex; flex-direction: column;">
+            <div class="ribbon-group-title">Bild</div>
+            <div class="ribbon-buttons">
+                <div class="ribbon-popup">
+                    <button class="ribbon-btn" onclick="toggleImagePopup()" title="Bild laden">
+                        🖼️ Bild laden
+                    </button>
+                    <div id="imagePopup" class="ribbon-popup-content">
+                        <label>Bild auswählen:</label>
+                        <input type="file" id="upload" accept="image/*">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="autoFitCheckbox" checked onchange="toggleAutoFit()">
+                            <label for="autoFitCheckbox">Bild automatisch an Fenster anpassen</label>
+                        </div>
+                        <div id="imageStatus" style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">Keine Datei ausgewählt</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ribbon-group">
+        <div style="display: flex; flex-direction: column;">
+            <div class="ribbon-group-title">Maßstab</div>
+            <div class="ribbon-buttons">
+                <div class="ribbon-popup">
+                    <button class="ribbon-btn" onclick="toggleScalePopup()" title="Maßstab festlegen">
+                        📏 Maßstab
+                    </button>
+                    <div id="scalePopup" class="ribbon-popup-content">
+                        <div class="hint">(Eingabe in mm)</div>
+                        <label>Länge in mm:</label>
+                        <input type="number" id="realLength" placeholder="Länge in mm" value="0">
+                        <button class="btn-primary" onclick="setMode('scale')" id="btnScale">Maßstab festlegen</button>
+                        <button class="btn-success" id="btnConfirmScale" onclick="confirmScale()" style="display:none; margin-top:8px;">Maßstab bestätigen ✓</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ribbon-group">
+        <div style="display: flex; flex-direction: column;">
+            <div class="ribbon-group-title">Muster</div>
+            <div class="ribbon-buttons">
+                <button class="ribbon-btn" onclick="exportPatterns()" title="Muster exportieren">
+                    📤 Export
+                </button>
+                <button class="ribbon-btn" onclick="document.getElementById('importPatterns').click()" title="Muster importieren">
+                    📥 Import
+                </button>
+                <input type="file" id="importPatterns" style="display:none" accept=".json" onchange="importPatterns(event)">
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Hilfe-Button oben rechts -->
 <button id="helpButton" onclick="openHelpWindow()" title="Anleitung öffnen">?</button>
 
-<div id="sidebar">
-    <div class="brand-container">
-        <span class="brand-letter">U</span><span class="brand-suffix">niversal</span>
-        <span class="brand-letter">W</span><span class="brand-suffix">iring</span>
-        <span class="brand-letter">E</span><span class="brand-suffix">ngine</span>
-    </div>
-    
-    <div class="step" style="background: #27ae60; border-left-color: white;">
-        <strong>Projekt-Speicher</strong>
-        <div style="display:flex; gap:5px; margin-top:5px;">
-            <button onclick="saveProjectJSON()" style="background: white; color: #27ae60; flex:1; padding:8px;">Speichern</button>
-            <button onclick="document.getElementById('loadProject').click()" style="background: white; color: #27ae60; flex:1; padding:8px;">Laden</button>
+<!-- Main Container -->
+<div id="appContainer">
+    <!-- Linke Sidebar - Kabelstrang-Erstellung -->
+    <div id="sidebar">
+        <div class="brand-container">
+            <span class="brand-letter">U</span><span class="brand-suffix">niversal</span>
+            <span class="brand-letter">W</span><span class="brand-suffix">iring</span>
+            <span class="brand-letter">E</span><span class="brand-suffix">ngine</span>
         </div>
-        <input type="file" id="loadProject" style="display:none" accept=".json" onchange="loadProjectJSON(event)">
-    </div>
-
-    <div class="step">
-        <strong>1. Bild laden</strong>
-        <input type="file" id="upload" accept="image/*">
-        <label style="display:flex; align-items:center; gap:5px; margin-top:10px; font-size:0.9em; cursor:pointer;">
-            <input type="checkbox" id="autoFitCheckbox" checked onchange="toggleAutoFit()">
-            <span>Bild automatisch an Fenster anpassen</span>
-        </label>
-    </div>
-
-    <div class="step">
-        <strong>2. Maßstab</strong>
-        <div style="font-size: 0.85em; color: #bdc3c7; margin-bottom: 5px;">(Eingabe in mm)</div>
-        <input type="number" id="realLength" placeholder="Länge in mm" value="0">
-        <button class="btn-primary" onclick="setMode('scale')" id="btnScale">Maßstab festlegen</button>
-        <button class="btn-success" id="btnConfirmScale" onclick="confirmScale()" style="display:none; margin-top:10px;">Maßstab bestätigen ✓</button>
-    </div>
-
+    
     <div class="step">
         <strong>3. Farbe & Messen</strong>
         <input type="color" id="drawColor" value="#f39c12" style="height: 40px; width: 100%; cursor: pointer; border:none; border-radius:4px;">
@@ -483,48 +679,42 @@
         <div id="drawHint" style="display:none; font-size: 0.8em; color: #bdc3c7; margin-top: 5px; font-style: italic;">💡 Tipp: Doppelklick beendet das Zeichnen</div>
     </div>
 
-    <div id="project-list">
-        <strong>Erfasste Stränge:</strong>
-        <div id="bundleContainer" style="margin-top:10px;"></div>
-    </div>
-
-    <button class="btn-success" onclick="exportWustec()">Wustec Export (.csv)</button>
-    <button class="btn-primary" onclick="exportVisual()" style="background: #8e44ad;">Bild & Legende Export</button>
-</div>
-
-<div id="main"><canvas id="canvas"></canvas></div>
-
-<!-- Rechte Sidebar für Muster-Kabelstränge -->
-<div id="patternSidebar">
-    <div class="brand-container">
-        <div class="brand-letter">M</div>
-        <div class="brand-text">
-            <div class="brand-title">Muster</div>
-            <div class="brand-subtitle">Kabelstränge</div>
+        <div id="project-list">
+            <strong>Erfasste Stränge:</strong>
+            <div id="bundleContainer" style="margin-top:10px;"></div>
         </div>
     </div>
+
+    <!-- Hauptbereich - Canvas -->
+    <div id="main"><canvas id="canvas"></canvas></div>
+
+    <!-- Rechte Sidebar - Muster & Archiv -->
+    <div id="patternSidebar">
+        <div class="brand-container">
+            <div class="brand-letter">M</div>
+            <div class="brand-text">
+                <div class="brand-title">Muster</div>
+                <div class="brand-subtitle">Kabelstränge</div>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; padding: 5px 0;" onclick="togglePatternManagement()">
+                <h3 style="margin: 0; font-size: 0.95em; font-weight: 600;">Muster-Verwaltung</h3>
+                <span id="patternManagementToggle" style="font-size: 1em; transition: transform 0.2s;">▼</span>
+            </div>
+            <div id="patternManagementContent" style="margin-top: 12px;">
+                <button class="btn-primary" onclick="openPatternModal()" style="margin-bottom: 8px; font-size: 13px;">+ Neues Muster</button>
+                <button class="btn-primary" onclick="createPatternGroup()" style="margin-bottom: 8px; background: var(--secondary); font-size: 13px;">+ Neue Gruppe</button>
+                <button class="btn-danger" onclick="deletePatternGroupFromList()" style="margin-bottom: 8px; font-size: 13px;">Gruppe löschen</button>
+            </div>
+        </div>
     
-    <div class="step">
-        <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; padding: 5px 0;" onclick="togglePatternManagement()">
-            <h3 style="margin: 0;">Muster-Verwaltung</h3>
-            <span id="patternManagementToggle" style="font-size: 1.2em; transition: transform 0.2s;">▼</span>
-        </div>
-        <div id="patternManagementContent" style="margin-top: 15px;">
-            <button class="btn-primary" onclick="openPatternModal()" style="margin-bottom: 10px;">+ Neues Muster</button>
-            <button class="btn-primary" onclick="createPatternGroup()" style="margin-bottom: 10px; background: var(--secondary-light);">+ Neue Gruppe</button>
-            <button class="btn-danger" onclick="deletePatternGroupFromList()" style="margin-bottom: 10px;">Gruppe löschen</button>
-            <button class="btn-success" onclick="exportPatterns()" style="margin-bottom: 10px;">Muster exportieren</button>
-            <input type="file" id="importPatterns" accept=".json" onchange="importPatterns(event)" style="margin-bottom: 10px;">
-            <label for="importPatterns" style="display: block; text-align: center; padding: 8px; background: var(--card-bg); border-radius: 6px; cursor: pointer; border: 1px solid var(--card-border);">
-                📥 Muster importieren
-            </label>
-        </div>
-    </div>
-    
-    <div class="step">
-        <h3 style="margin-top: 0;" id="patternListTitle">Muster-Liste</h3>
-        <div id="patternContainer" style="max-height: 500px; overflow-y: auto;">
-            <!-- Muster werden hier dynamisch eingefügt -->
+        <div class="step">
+            <h3 style="margin-top: 0; font-size: 0.95em; font-weight: 600;" id="patternListTitle">Muster-Liste</h3>
+            <div id="patternContainer" style="max-height: 500px; overflow-y: auto;">
+                <!-- Muster werden hier dynamisch eingefügt -->
+            </div>
         </div>
     </div>
 </div>
@@ -586,7 +776,46 @@
     let autoFitToWindow = true; // Automatische Bildskalierung auf Fenstergröße
     let imageScale = 1, imageOffsetX = 0, imageOffsetY = 0; // Für Bild-Skalierung
 
-    document.getElementById('upload').onchange = (e) => loadMainImage(e.target.files[0]);
+    // Pop-up Menü Funktionen
+    function toggleImagePopup() {
+        const popup = document.getElementById('imagePopup');
+        const scalePopup = document.getElementById('scalePopup');
+        if (scalePopup) scalePopup.classList.remove('show');
+        if (popup) popup.classList.toggle('show');
+    }
+    
+    function toggleScalePopup() {
+        const popup = document.getElementById('scalePopup');
+        const imagePopup = document.getElementById('imagePopup');
+        if (imagePopup) imagePopup.classList.remove('show');
+        if (popup) popup.classList.toggle('show');
+    }
+    
+    // Schließe Pop-ups beim Klicken außerhalb
+    document.addEventListener('click', function(event) {
+        const imagePopup = document.getElementById('imagePopup');
+        const scalePopup = document.getElementById('scalePopup');
+        const isImagePopup = event.target.closest('#imagePopup');
+        const isScalePopup = event.target.closest('#scalePopup');
+        const isImageBtn = event.target.closest('.ribbon-popup');
+        
+        if (imagePopup && !isImagePopup && !isImageBtn) {
+            imagePopup.classList.remove('show');
+        }
+        if (scalePopup && !isScalePopup && !isImageBtn) {
+            scalePopup.classList.remove('show');
+        }
+    });
+
+    document.getElementById('upload').onchange = (e) => {
+        loadMainImage(e.target.files[0]);
+        // Update Status
+        const status = document.getElementById('imageStatus');
+        if (status && e.target.files[0]) {
+            status.textContent = 'Ausgewählt: ' + e.target.files[0].name;
+            status.style.color = 'var(--success)';
+        }
+    };
 
     function resizeCanvas() {
         const main = document.getElementById('main');
@@ -1792,6 +2021,38 @@
         }
     }
     
+    // Funktion zum Laden von Muster-Daten (wird sowohl für Import als auch für Standard-Muster verwendet)
+    function loadPatternData(data, fileName) {
+        if (data.patterns && Array.isArray(data.patterns)) {
+            patternBundles = data.patterns;
+            
+            // Lade Gruppen, falls vorhanden
+            if (data.groups && Array.isArray(data.groups)) {
+                patternGroups = data.groups;
+            } else {
+                // Fallback: Erstelle Standard-Gruppe für alle Muster ohne Gruppe
+                const defaultGroupId = 'group_' + Date.now();
+                patternGroups = [{ id: defaultGroupId, name: 'Standard', collapsed: false }];
+                patternBundles.forEach(p => {
+                    if (!p.groupId) p.groupId = defaultGroupId;
+                });
+            }
+            
+            // Extrahiere den Dateinamen (ohne .json) und verwende ihn als Muster-Listen-Namen
+            if (fileName) {
+                const cleanFileName = fileName.replace(/\.json$/i, '');
+                patternListName = data.listName || cleanFileName;
+            } else {
+                patternListName = data.listName || 'Standard-Muster';
+            }
+            
+            updatePatternListTitle();
+            updatePatternList();
+            return true;
+        }
+        return false;
+    }
+    
     function importPatterns(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1800,27 +2061,7 @@
         reader.onload = (f) => {
             try {
                 const data = JSON.parse(f.target.result);
-                if (data.patterns && Array.isArray(data.patterns)) {
-                    patternBundles = data.patterns;
-                    
-                    // Lade Gruppen, falls vorhanden
-                    if (data.groups && Array.isArray(data.groups)) {
-                        patternGroups = data.groups;
-                    } else {
-                        // Fallback: Erstelle Standard-Gruppe für alle Muster ohne Gruppe
-                        const defaultGroupId = 'group_' + Date.now();
-                        patternGroups = [{ id: defaultGroupId, name: 'Standard', collapsed: false }];
-                        patternBundles.forEach(p => {
-                            if (!p.groupId) p.groupId = defaultGroupId;
-                        });
-                    }
-                    
-                    // Extrahiere den Dateinamen (ohne .json) und verwende ihn als Muster-Listen-Namen
-                    const fileName = file.name.replace(/\.json$/i, '');
-                    patternListName = data.listName || fileName;
-                    
-                    updatePatternListTitle();
-                    updatePatternList();
+                if (loadPatternData(data, file.name)) {
                     alert(`${data.patterns.length} Muster in ${patternGroups.length} Gruppe(n) erfolgreich importiert!`);
                 } else {
                     alert("Ungültiges Dateiformat!");
@@ -1833,6 +2074,29 @@
         event.target.value = ''; // Reset input
     }
     
+    // Lade Standard-Muster beim Programmstart
+    function loadDefaultPatterns() {
+        fetch('default-patterns.json')
+            .then(response => {
+                if (!response.ok) {
+                    // Wenn die Datei nicht gefunden wird, ist das ok - dann werden keine Standard-Muster geladen
+                    console.log('Standard-Muster-Datei nicht gefunden. Keine Standard-Muster werden geladen.');
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) {
+                    loadPatternData(data, 'default-patterns.json');
+                    console.log('Standard-Muster erfolgreich geladen:', data.patterns.length, 'Muster in', data.groups ? data.groups.length : 1, 'Gruppe(n)');
+                }
+            })
+            .catch(error => {
+                // Fehler beim Laden ist ok - dann werden keine Standard-Muster geladen
+                console.log('Standard-Muster konnten nicht geladen werden:', error.message);
+            });
+    }
+    
     function updatePatternListTitle() {
         const titleElement = document.getElementById('patternListTitle');
         if (patternListName) {
@@ -1843,13 +2107,18 @@
     }
     
     // Initialisiere Muster-Liste beim Start
-    // Erstelle Standard-Gruppe, falls keine vorhanden
-    if (patternGroups.length === 0) {
-        const defaultGroupId = 'group_' + Date.now();
-        patternGroups.push({ id: defaultGroupId, name: 'Standard', collapsed: false });
-    }
-    updatePatternListTitle();
-    updatePatternList();
+    // Lade zuerst Standard-Muster, dann erstelle Standard-Gruppe falls nötig
+    loadDefaultPatterns();
+    
+    // Erstelle Standard-Gruppe, falls keine vorhanden (nach dem Laden der Standard-Muster)
+    setTimeout(() => {
+        if (patternGroups.length === 0) {
+            const defaultGroupId = 'group_' + Date.now();
+            patternGroups.push({ id: defaultGroupId, name: 'Standard', collapsed: false });
+        }
+        updatePatternListTitle();
+        updatePatternList();
+    }, 100); // Kurze Verzögerung, damit loadDefaultPatterns zuerst ausgeführt wird
 
     function autoFill(cls, inc) {
         const rows = document.querySelectorAll("#wireTable tbody tr");

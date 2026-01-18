@@ -7,52 +7,80 @@
     <meta name="keywords" content="Kabelbaum, Verdrahtung, Kabel, UWE, Wiring, Dokumentation">
     <meta name="author" content="UWE">
     <title>UWE - Universal Wiring Engine</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#3b82f6', // Modern blue accent
+                        'slate-50': '#f8fafc',
+                        'slate-100': '#f1f5f9',
+                        'slate-200': '#e2e8f0',
+                        'slate-300': '#cbd5e1',
+                        'slate-400': '#94a3b8',
+                        'slate-500': '#64748b',
+                        'slate-600': '#475569',
+                        'slate-700': '#334155',
+                        'slate-800': '#1e293b',
+                        'slate-900': '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
         :root { 
-            /* Word 2024 Farbpalette */
-            --primary: #0078d4; 
-            --primary-dark: #005a9e; 
-            --primary-hover: #106ebe;
-            --secondary: #323130; 
-            --secondary-light: #605e5c;
-            --success: #107c10; 
-            --danger: #d13438; 
-            --warning: #ffaa44; 
-            --light: #faf9f8; 
+            /* Modern Slate/Zinc Color Palette mit Akzenten */
+            --primary: #3b82f6; 
+            --primary-dark: #2563eb; 
+            --primary-hover: #60a5fa;
+            --secondary: #475569; 
+            --secondary-light: #64748b;
+            --success: #10b981; 
+            --danger: #ef4444; 
+            --warning: #f59e0b; 
+            --light: #f8fafc; 
             --card-bg: #ffffff;
-            --card-border: #edebe9;
-            --ribbon-bg: #faf9f8;
-            --ribbon-border: #edebe9;
+            --card-border: #e2e8f0;
+            --ribbon-bg: #ffffff;
+            --ribbon-border: #e2e8f0;
             --sidebar-bg: #ffffff;
-            --text-primary: #323130;
-            --text-secondary: #605e5c;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
         }
         
         * { box-sizing: border-box; }
         
         body { 
-            font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            font-family: 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', sans-serif; 
             display: flex; 
             flex-direction: column;
             height: 100vh; 
             margin: 0; 
-            background: #f3f2f1;
+            background: #f8fafc;
             color: var(--text-primary); 
             overflow: hidden;
             position: relative;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
-        /* Top Ribbon Bar - Word 2024 Style */
+        /* Top Ribbon Bar - Modern Design */
         #ribbonBar {
             background: var(--ribbon-bg);
             border-bottom: 1px solid var(--ribbon-border);
-            padding: 8px 16px;
+            padding: 6px 16px;
             display: flex;
             align-items: center;
             gap: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
             z-index: 100;
             flex-shrink: 0;
         }
@@ -85,18 +113,19 @@
             padding: 6px 12px;
             background: transparent;
             border: 1px solid transparent;
-            border-radius: 4px;
+            border-radius: 8px;
             color: var(--text-primary);
             font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             gap: 6px;
         }
         .ribbon-btn:hover {
-            background: #edebe9;
-            border-color: #c8c6c4;
+            background: #f1f5f9;
+            border-color: #e2e8f0;
         }
         .ribbon-btn.primary {
             background: var(--primary);
@@ -126,13 +155,13 @@
             top: 100%;
             left: 0;
             background: white;
-            min-width: 280px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 300px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
             border: 1px solid var(--card-border);
-            border-radius: 2px;
-            padding: 16px;
+            border-radius: 12px;
+            padding: 20px;
             z-index: 1000;
-            margin-top: 4px;
+            margin-top: 8px;
         }
         .ribbon-popup-content.show {
             display: block;
@@ -178,26 +207,26 @@
         /* Logo oben rechts neben dem Hilfe-Button */
         #logoContainer {
             position: fixed;
-            top: 12px;
-            right: 60px;
+            top: 16px;
+            right: 72px;
             z-index: 1001;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
         }
         #logoContainer .logo-hundt {
             font-size: 32px;
-            font-weight: bold;
-            color: #0078d4;
+            font-weight: 700;
+            color: var(--primary);
             font-style: italic;
             line-height: 1;
             letter-spacing: -1px;
         }
         #logoContainer .logo-elektrosysteme {
             font-size: 12px;
-            font-weight: normal;
-            color: #666666;
+            font-weight: 500;
+            color: var(--text-secondary);
             font-style: italic;
             margin-top: 2px;
             letter-spacing: 0.5px;
@@ -206,27 +235,28 @@
         /* Hilfe-Button oben rechts */
         #helpButton {
             position: fixed;
-            top: 12px;
-            right: 16px;
+            top: 16px;
+            right: 20px;
             z-index: 1001;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
             background: var(--primary);
             color: white;
             border: none;
             font-size: 18px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         #helpButton:hover {
-            background: var(--primary-hover);
-            transform: scale(1.05);
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
         }
         
         /* Main Container - Flex Layout */
@@ -239,47 +269,47 @@
         /* Linke Sidebar - Kabelstrang-Erstellung */
         #sidebar { 
             width: 320px; 
-            padding: 16px; 
+            padding: 20px; 
             background: var(--sidebar-bg);
             border-right: 1px solid var(--card-border); 
             overflow-y: auto; 
             flex-shrink: 0; 
             display: flex; 
             flex-direction: column; 
-            gap: 16px;
+            gap: 20px;
         }
         
         /* Rechte Sidebar - Muster & Archiv */
         #patternSidebar { 
-            width: 320px; 
-            padding: 16px; 
+            width: 420px; 
+            padding: 20px; 
             background: var(--sidebar-bg);
             border-left: 1px solid var(--card-border); 
             overflow-y: auto; 
             flex-shrink: 0; 
             display: flex; 
             flex-direction: column; 
-            gap: 16px;
+            gap: 20px;
         }
         
         #sidebar::-webkit-scrollbar, #patternSidebar::-webkit-scrollbar { 
             width: 8px; 
         }
         #sidebar::-webkit-scrollbar-track, #patternSidebar::-webkit-scrollbar-track { 
-            background: #f3f2f1; 
+            background: #f8fafc; 
         }
         #sidebar::-webkit-scrollbar-thumb, #patternSidebar::-webkit-scrollbar-thumb { 
-            background: #c8c6c4; 
+            background: #cbd5e1; 
             border-radius: 4px; 
         }
         #sidebar::-webkit-scrollbar-thumb:hover, #patternSidebar::-webkit-scrollbar-thumb:hover { 
-            background: #a19f9d; 
+            background: #94a3b8; 
         }
         
-        /* Titel Branding - Word 2024 Style */
+        /* Titel Branding - Modern Design */
         .brand-container { 
-            margin-bottom: 12px; 
-            padding-bottom: 12px; 
+            margin-bottom: 16px; 
+            padding-bottom: 16px; 
             border-bottom: 1px solid var(--card-border); 
         }
         .brand-letter { 
@@ -304,18 +334,19 @@
             color: var(--text-secondary);
         }
 
-        /* Step Cards - Word 2024 Style */
+        /* Step Cards - Modern Design */
         .step { 
             background: var(--card-bg);
-            padding: 16px; 
-            border-radius: 4px; 
+            padding: 20px; 
+            border-radius: 12px; 
             border: 1px solid var(--card-border);
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
         }
         .step:hover {
-            border-color: var(--primary);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
         }
         .step strong {
             display: block;
@@ -327,7 +358,7 @@
         
         #main { 
             flex-grow: 1; 
-            background: #f3f2f1; 
+            background: #f8fafc; 
             display: flex; 
             justify-content: center; 
             align-items: center;
@@ -337,14 +368,15 @@
         canvas { 
             background: white; 
             cursor: crosshair; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
             border: 1px solid var(--card-border);
+            border-radius: 12px;
             max-width: 100%; 
             max-height: 100%; 
             object-fit: contain; 
         }
 
-        /* Modal - Word 2024 Style */
+        /* Modal - Modern Design */
         #overlay { 
             display: none; 
             position: fixed; 
@@ -352,7 +384,8 @@
             left:0; 
             width:100%; 
             height:100%; 
-            background: rgba(0,0,0,0.4);
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
             z-index: 999; 
         }
         #modal { 
@@ -365,16 +398,16 @@
             max-width: 1100px; 
             background: white; 
             color: var(--text-primary); 
-            padding: 24px; 
-            border-radius: 4px; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2); 
+            padding: 32px; 
+            border-radius: 16px; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); 
             z-index: 1000; 
             max-height: 90vh; 
             overflow-y: auto;
             border: 1px solid var(--card-border);
         }
         #modal::-webkit-scrollbar { width: 10px; }
-        #modal::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 5px; }
+        #modal::-webkit-scrollbar-track { background: #f8fafc; border-radius: 5px; }
         #modal::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
         #modal::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
@@ -383,65 +416,67 @@
             border-collapse: collapse; 
             margin-top: 20px; 
             background: white; 
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         th, td { 
             border: 1px solid #e2e8f0; 
-            padding: 12px; 
+            padding: 14px; 
             text-align: left; 
             font-size: 14px; 
             color: #334155; 
         }
         th { 
-            background: #faf9f8;
+            background: #f8fafc;
             font-weight: 600;
             color: var(--text-primary);
             border-bottom: 2px solid var(--card-border);
         }
-        tr:hover { background: #faf9f8; }
+        tr:hover { background: #f8fafc; }
         
         input[type="text"], input[type="number"], select { 
             width: 100%; 
-            padding: 6px 10px; 
+            padding: 10px 14px; 
             box-sizing: border-box; 
             border: 1px solid var(--card-border); 
-            border-radius: 2px; 
+            border-radius: 8px; 
             font-size: 14px;
-            font-family: 'Segoe UI', sans-serif;
-            transition: all 0.15s ease;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
             background: white;
             color: var(--text-primary);
         }
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 1px var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         input[type="color"] {
-            height: 36px;
+            height: 44px;
             border: 1px solid var(--card-border);
-            border-radius: 2px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
         }
         input[type="color"]:hover {
-            border-color: var(--primary);
+            border-color: #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         input[type="file"] {
-            padding: 8px;
-            border: 1px dashed var(--card-border);
-            border-radius: 2px;
+            padding: 10px 14px;
+            border: 2px dashed var(--card-border);
+            border-radius: 10px;
             background: white;
             color: var(--text-primary);
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
             width: 100%;
             font-size: 13px;
         }
         input[type="file"]:hover {
-            border-color: var(--primary);
-            background: #faf9f8;
+            border-color: #cbd5e1;
+            background: #f8fafc;
         }
         input[type="checkbox"] {
             width: 18px;
@@ -455,34 +490,38 @@
             background: var(--primary); 
             color: white; 
             border: none; 
-            border-radius: 2px; 
-            padding: 2px 8px; 
+            border-radius: 6px; 
+            padding: 4px 10px; 
             font-size: 11px; 
             cursor: pointer; 
             float: right; 
             margin-top: 2px;
-            font-weight: 400;
-            transition: all 0.15s ease;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
         .fill-btn:hover {
-            background: var(--primary-hover);
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         button { 
-            padding: 8px 16px; 
-            border-radius: 2px; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
             border: 1px solid var(--card-border); 
-            font-weight: 400; 
+            font-weight: 500; 
             cursor: pointer; 
-            transition: all 0.15s ease;
-            font-family: 'Segoe UI', sans-serif;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
             font-size: 14px;
             background: white;
             color: var(--text-primary);
         }
         button:hover {
-            background: #f3f2f1;
-            border-color: var(--primary);
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         button:active {
             background: #edebe9;
@@ -492,48 +531,58 @@
             color: white; 
             border-color: var(--primary);
             width: 100%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         .btn-primary:hover {
-            background: var(--primary-hover);
-            border-color: var(--primary-hover);
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
         }
         .btn-success { 
             background: var(--success);
             color: white; 
             border-color: var(--success);
             width: 100%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         .btn-success:hover {
-            background: #0e6b0e;
-            border-color: #0e6b0e;
+            background: #059669;
+            border-color: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
         }
         .btn-danger { 
             background: var(--danger);
             color: white; 
             border-color: var(--danger);
             width: 100%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         .btn-danger:hover {
-            background: #b02a2e;
-            border-color: #b02a2e;
+            background: #dc2626;
+            border-color: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
         }
         
         /* Liste in Sidebar - Word 2024 Style */
         .bundle-item { 
             background: var(--card-bg);
-            padding: 12px; 
-            border-radius: 2px; 
-            margin-top: 6px; 
+            padding: 14px; 
+            border-radius: 10px; 
+            margin-top: 8px; 
             display: flex; 
             align-items: center; 
             justify-content: space-between; 
             font-size: 0.9em;
             border: 1px solid var(--card-border);
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
         }
         .bundle-item:hover {
-            background: #faf9f8;
-            border-color: var(--primary);
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .bundle-info { 
             display: flex; 
@@ -550,19 +599,20 @@
             font-size: 13px; 
             background: white;
             color: var(--text-primary); 
-            border-radius: 2px; 
+            border-radius: 8px; 
             cursor: pointer; 
-            width: 28px; 
-            height: 28px; 
+            width: 32px; 
+            height: 32px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             border: 1px solid var(--card-border);
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
         }
         .action-btn:hover {
-            background: #f3f2f1;
-            border-color: var(--primary);
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: scale(1.05);
         }
         .color-dot { 
             width: 16px; 
@@ -2031,6 +2081,28 @@
         };
         input.click();
     }
+    
+    function changeDefaultPatternColor(i) {
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = defaultPatternBundles[i].color || '#f39c12';
+        input.onchange = (e) => {
+            defaultPatternBundles[i].color = e.target.value;
+            updatePatternList();
+        };
+        input.click();
+    }
+    
+    function changePatternColor(i) {
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = patternBundles[i].color || '#f39c12';
+        input.onchange = (e) => {
+            patternBundles[i].color = e.target.value;
+            updatePatternList();
+        };
+        input.click();
+    }
     function editBundle(i) { editIndex = i; lastMeasuredLength = allBundles[i].len; openModal(); }
     function redrawBundle(i) {
         if(!mmPerPixel) { alert("Bitte zuerst den Maßstab festlegen!"); return; }
@@ -2159,7 +2231,7 @@
                                                     const globalIndex = defaultPatternBundles.findIndex(b => b === p);
                                                     return `<div class="bundle-item" style="margin-top: 8px; ${selectedPatternIndex === globalIndex ? 'border: 2px solid var(--primary);' : ''}">
                                                         <div class="bundle-info" style="flex: 1; min-width: 0; overflow: hidden;">
-                                                            <div class="color-dot" style="background: ${p.color}; flex-shrink: 0;"></div>
+                                                            <div class="color-dot" style="background: ${p.color || '#f39c12'}; flex-shrink: 0; cursor: pointer;" onclick="changeDefaultPatternColor(${globalIndex})" title="Farbe ändern"></div>
                                                             <div style="flex: 1; min-width: 0; overflow: hidden;">
                                                                 <div style="word-wrap: break-word; overflow-wrap: break-word;"><strong>${p.name}</strong></div>
                                                                 <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">
@@ -2238,7 +2310,7 @@
                                                 const globalIndex = patternBundles.findIndex(b => b === p);
                                                 return `<div class="bundle-item" style="margin-top: 8px; ${selectedPatternIndex === globalIndex ? 'border: 2px solid var(--primary);' : ''}">
                                                     <div class="bundle-info" style="flex: 1; min-width: 0; overflow: hidden;">
-                                                        <div class="color-dot" style="background: ${p.color}; flex-shrink: 0;"></div>
+                                                        <div class="color-dot" style="background: ${p.color || '#f39c12'}; flex-shrink: 0; cursor: pointer;" onclick="changePatternColor(${globalIndex})" title="Farbe ändern"></div>
                                                         <div style="flex: 1; min-width: 0; overflow: hidden;">
                                                             <div style="word-wrap: break-word; overflow-wrap: break-word;"><strong>${p.name}</strong></div>
                                                             <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">
@@ -2840,11 +2912,14 @@
     }
     
     function exportPatterns() {
-        // Exportiere nur neue/importierte Muster, nicht die Standard-Muster
-        if (patternBundles.length === 0) {
-            alert("Keine Muster zum Exportieren vorhanden!\n\nHinweis: Standard-Muster werden nicht exportiert.");
+        // Prüfe ob überhaupt Muster vorhanden sind
+        if (patternBundles.length === 0 && defaultPatternBundles.length === 0) {
+            alert("Keine Muster zum Exportieren vorhanden!");
             return;
         }
+        
+        // Stelle sicher, dass alle aktuellen Änderungen gespeichert sind
+        // (Farbänderungen werden bereits direkt in patternBundles/defaultPatternBundles gespeichert)
         
         // Frage den Benutzer nach dem Dateinamen
         let fileName = patternListName || 'uwe-muster';
@@ -2866,9 +2941,23 @@
         updatePatternListTitle();
         
         try {
+            // Erstelle eine Kopie der aktuellen Muster-Daten mit allen Änderungen
+            // Exportiere importierte Muster (patternBundles) mit allen aktuellen Änderungen
+            const patternsToExport = patternBundles.map(p => ({
+                ...p,
+                color: p.color || '#f39c12', // Stelle sicher, dass Farbe vorhanden ist
+                name: p.name || '',
+                len: p.len || 0,
+                pS: p.pS || 0,
+                pE: p.pE || 0,
+                wires: p.wires || [],
+                groupId: p.groupId || null,
+                path: [] // Muster haben keinen Pfad
+            }));
+            
             const dataStr = JSON.stringify({ 
-                patterns: patternBundles, // Nur neue Muster
-                groups: patternGroups, // Nur neue Gruppen
+                patterns: patternsToExport, // Alle aktuellen Muster mit allen Änderungen (Farben, etc.)
+                groups: patternGroups, // Aktuelle Gruppen
                 listName: patternListName 
             }, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -2888,6 +2977,13 @@
         if (data.patterns && Array.isArray(data.patterns)) {
             // Prüfe ob es Standard-Muster sind
             const isDefault = (fileName && fileName.toLowerCase() === 'default-patterns.json');
+            
+            // Stelle sicher, dass alle Muster eine Farbe haben
+            data.patterns.forEach(p => {
+                if (!p.color) {
+                    p.color = '#f39c12'; // Default-Farbe falls keine vorhanden
+                }
+            });
             
             if (isDefault) {
                 // Lade in Standard-Muster-Array

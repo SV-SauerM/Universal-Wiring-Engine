@@ -96,7 +96,7 @@
         }
         .ribbon-group.spacer {
             margin-left: auto;
-            margin-right: 240px; /* Platz für Logo links neben Muster */
+            margin-right: 340px; /* Abstand zum Logo – Muster/Export/Import weiter links, neben Logo */
         }
         .ribbon-group-title {
             font-size: 11px;
@@ -211,25 +211,13 @@
             right: 72px;
             z-index: 1001;
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            font-family: 'Inter', sans-serif;
+            align-items: center;
         }
-        #logoContainer .logo-hundt {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--primary);
-            font-style: italic;
-            line-height: 1;
-            letter-spacing: -1px;
-        }
-        #logoContainer .logo-elektrosysteme {
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            font-style: italic;
-            margin-top: 2px;
-            letter-spacing: 0.5px;
+        #logoContainer img {
+            display: block;
+            max-height: 48px;
+            width: auto;
+            object-fit: contain;
         }
         
         /* Hilfe-Button oben rechts */
@@ -692,7 +680,7 @@
                         <input type="number" id="realLength" placeholder="Länge in mm" value="0">
                         <button class="btn-primary" onclick="setMode('scale')" id="btnScale">Maßstab festlegen</button>
                         <button class="btn-success" id="btnConfirmScale" onclick="confirmScale()" style="display:none; margin-top:8px;">Maßstab bestätigen ✓</button>
-                    </div>
+        </div>
                 </div>
             </div>
         </div>
@@ -708,11 +696,11 @@
                 <button class="ribbon-btn" onclick="document.getElementById('loadProject').click()" title="Projekt laden">
                     📂 Laden
                 </button>
-                <input type="file" id="loadProject" style="display:none" accept=".json" onchange="loadProjectJSON(event)">
+        <input type="file" id="loadProject" style="display:none" accept=".json" onchange="loadProjectJSON(event)">
             </div>
         </div>
     </div>
-    
+
     <div class="ribbon-group">
         <div style="display: flex; flex-direction: column;">
             <div class="ribbon-group-title">Export</div>
@@ -726,7 +714,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="ribbon-group spacer">
         <div style="display: flex; flex-direction: column;">
             <div class="ribbon-group-title">Muster</div>
@@ -743,10 +731,9 @@
     </div>
 </div>
 
-<!-- Logo oben links -->
+<!-- Logo oben rechts -->
 <div id="logoContainer">
-    <div class="logo-hundt">HUNDT</div>
-    <div class="logo-elektrosysteme">ELEKTROSYSTEME</div>
+    <img src="logo-hundt-elektrosysteme.png" alt="HUNDT ELEKTROSYSTEME">
 </div>
 
 <!-- Hilfe-Button oben rechts -->
@@ -760,8 +747,8 @@
             <span class="brand-letter">U</span><span class="brand-suffix">niversal</span>
             <span class="brand-letter">W</span><span class="brand-suffix">iring</span>
             <span class="brand-letter">E</span><span class="brand-suffix">ngine</span>
-        </div>
-    
+    </div>
+
     <div class="step">
         <strong>3. Farbe & Messen</strong>
         <input type="color" id="drawColor" value="#f39c12" style="height: 40px; width: 100%; cursor: pointer; border:none; border-radius:4px;">
@@ -769,14 +756,14 @@
         <div id="drawHint" style="display:none; font-size: 0.8em; color: #bdc3c7; margin-top: 5px; font-style: italic;">💡 Tipp: Doppelklick beendet das Zeichnen</div>
     </div>
 
-        <div id="project-list">
-            <strong>Erfasste Stränge:</strong>
-            <div id="bundleContainer" style="margin-top:10px;"></div>
-        </div>
+    <div id="project-list">
+        <strong>Erfasste Stränge:</strong>
+        <div id="bundleContainer" style="margin-top:10px;"></div>
     </div>
+</div>
 
     <!-- Hauptbereich - Canvas -->
-    <div id="main"><canvas id="canvas"></canvas></div>
+<div id="main"><canvas id="canvas"></canvas></div>
 
     <!-- Rechte Sidebar - Muster & Archiv -->
     <div id="patternSidebar">
@@ -797,6 +784,7 @@
                 <button class="btn-primary" onclick="openPatternModal()" style="margin-bottom: 8px; font-size: 13px;">+ Neues Muster</button>
                 <button class="btn-primary" onclick="createPatternGroup()" style="margin-bottom: 8px; background: var(--secondary); font-size: 13px;">+ Neue Gruppe</button>
                 <button class="btn-danger" onclick="deletePatternGroupFromList()" style="margin-bottom: 8px; font-size: 13px;">Gruppe löschen</button>
+                <button class="btn-success" onclick="saveDefaultPatternsToFile()" style="margin-top: 12px; font-size: 13px; width: 100%;">💾 Standard-Muster speichern</button>
             </div>
         </div>
     
@@ -850,8 +838,8 @@
             <button onclick="removeLastWireRow()" style="padding:8px 16px; background:var(--warning); color:black; border:none; border-radius:4px; cursor:pointer;">Letzte Zeile löschen</button>
         </div>
         <div style="display:flex; gap:10px;">
-            <button onclick="closeModal()">Abbrechen</button>
-            <button class="btn-success" onclick="saveCableBundle()" style="width:220px;">Speichern</button>
+        <button onclick="closeModal()">Abbrechen</button>
+        <button class="btn-success" onclick="saveCableBundle()" style="width:220px;">Speichern</button>
         </div>
     </div>
 </div>
@@ -873,6 +861,7 @@
     let collapsedGroups = {}; // Objekte für auf-/zuklappbare Gruppen {groupId: boolean}
     let defaultPatternListCollapsed = true; // Ob die Standard-Muster-Liste zugeklappt ist (beim Start immer geschlossen)
     let patternManagementCollapsed = true; // Ob die Muster-Verwaltung zugeklappt ist (beim Start immer geschlossen)
+    let defaultPatternWarningShownThisSession = false; // Hinweis zu Standard-Mustern nur einmal pro Sitzung
     let autoFitToWindow = true; // Automatische Bildskalierung auf Fenstergröße
     let imageScale = 1, imageOffsetX = 0, imageOffsetY = 0; // Für Bild-Skalierung
 
@@ -1759,7 +1748,7 @@
     
     // Event-Listener für Pfeiltasten hinzufügen (mit capture phase für höhere Priorität)
     document.addEventListener('keydown', handleModalArrowKeys, true);
-    
+
     function openModal() {
         document.getElementById('modal').style.display = 'block';
         document.getElementById('overlay').style.display = 'block';
@@ -1960,11 +1949,11 @@
                 const patternBundle = { ...b };
                 patternBundle.path = []; // Muster haben keinen Pfad
                 
-                // Prüfe ob es Standard-Muster sind
+                // Prüfe ob es Standard-Muster sind (Bestätigung entfällt – Hinweis einmalig beim Start)
                 if (isDefaultPatternList && selectedPatternIndex >= 0) {
-                    if (!confirm('Dies ist ein Standard-Muster. Möchten Sie die Änderungen wirklich speichern?\n\nHinweis: Die Änderungen werden nur in der aktuellen Sitzung gespeichert und gehen beim Neuladen verloren.')) {
-                        return;
-                    }
+                    // groupId erhalten – sonst verschwindet das Muster aus der Gruppenansicht
+                    const existing = defaultPatternBundles[selectedPatternIndex];
+                    if (existing && existing.groupId) patternBundle.groupId = existing.groupId;
                     // Speichere in Standard-Muster-Array
                     defaultPatternBundles[selectedPatternIndex] = patternBundle;
                 } else {
@@ -2522,11 +2511,13 @@
     }
     
     function editDefaultPattern(i) {
-        // Prüfe ob es Standard-Muster sind
-        if (!confirm('Dies ist ein Standard-Muster. Möchten Sie es wirklich bearbeiten?\n\nHinweis: Die Änderungen werden nur in der aktuellen Sitzung gespeichert und gehen beim Neuladen verloren.')) {
-            return;
+        // Hinweis nur beim ersten Bearbeiten eines Standard-Musters in dieser Sitzung
+        if (!defaultPatternWarningShownThisSession) {
+            if (!confirm('Dies ist ein Standard-Muster. Möchten Sie es wirklich bearbeiten?\n\nHinweis: Die Änderungen werden nur in der aktuellen Sitzung gespeichert und gehen beim Neuladen verloren.')) {
+                return;
+            }
+            defaultPatternWarningShownThisSession = true;
         }
-        
         selectedPatternIndex = i;
         isPatternMode = true;
         isDefaultPatternList = true;
@@ -2572,10 +2563,7 @@
     }
     
     function deleteDefaultPattern(i) {
-        if (!confirm('Dies ist ein Standard-Muster. Möchten Sie es wirklich löschen?\n\nHinweis: Das Muster wird nur in der aktuellen Sitzung gelöscht und wird beim Neuladen wieder erscheinen.')) {
-            return;
-        }
-        
+        // Bestätigung entfällt – Hinweis wird einmalig beim Start angezeigt
         defaultPatternBundles.splice(i, 1);
         updatePatternList();
     }
@@ -2970,6 +2958,75 @@
         } catch (e) {
             alert("Fehler beim Exportieren: " + e.message);
         }
+    }
+    
+    function saveDefaultPatternsToFile() {
+        // Prüfe ob Standard-Muster vorhanden sind
+        if (defaultPatternBundles.length === 0) {
+            alert("Keine Standard-Muster zum Speichern vorhanden!");
+            return;
+        }
+        
+        // Frage nach dem Passwort
+        const password = prompt("Bitte geben Sie das Passwort ein, um die Standard-Muster zu speichern:");
+        
+        if (password === null) {
+            // Benutzer hat Abbrechen gedrückt
+            return;
+        }
+        
+        if (!password) {
+            alert("Bitte geben Sie ein Passwort ein!");
+            return;
+        }
+        
+        // Erstelle eine Kopie der aktuellen Standard-Muster-Daten mit allen Änderungen
+        const patternsToSave = defaultPatternBundles.map(p => ({
+            ...p,
+            color: p.color || '#f39c12',
+            name: p.name || '',
+            len: p.len || 0,
+            pS: p.pS || 0,
+            pE: p.pE || 0,
+            wires: p.wires || [],
+            groupId: p.groupId || null,
+            path: [] // Muster haben keinen Pfad
+        }));
+        
+        // Sende die Daten an den Server
+        fetch('/api/save-default-patterns', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                password: password,
+                patterns: patternsToSave,
+                groups: defaultPatternGroups,
+                listName: 'Standard-Muster'
+            })
+        })
+        .then(response => {
+            // Prüfe ob die Antwort JSON ist
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    throw new Error('Server hat keine JSON-Antwort zurückgegeben. Bitte Server neu starten!');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert("Standard-Muster erfolgreich gespeichert!\n\nDie Änderungen werden beim nächsten Öffnen der Anwendung geladen.");
+            } else {
+                alert("Fehler beim Speichern: " + (data.error || 'Unbekannter Fehler'));
+            }
+        })
+        .catch(error => {
+            console.error('Fehler:', error);
+            alert("Fehler beim Speichern: " + error.message + "\n\nBitte stellen Sie sicher, dass der Server läuft und neu gestartet wurde.");
+        });
     }
     
     // Funktion zum Laden von Muster-Daten (wird sowohl für Import als auch für Standard-Muster verwendet)

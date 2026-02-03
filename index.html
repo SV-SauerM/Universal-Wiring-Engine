@@ -219,6 +219,28 @@
             width: auto;
             object-fit: contain;
         }
+        #logoContainer .logo-text-fallback {
+            display: none;
+            flex-direction: column;
+            align-items: flex-end;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.1;
+        }
+        #logoContainer .logo-text-fallback .logo-hundt {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            font-style: italic;
+            letter-spacing: -1px;
+        }
+        #logoContainer .logo-text-fallback .logo-elektrosysteme {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 2px;
+            letter-spacing: 0.5px;
+        }
         
         /* Hilfe-Button oben rechts */
         #helpButton {
@@ -731,9 +753,14 @@
     </div>
 </div>
 
-<!-- Logo oben rechts -->
+<!-- Logo oben rechts (Bild mit Text-Fallback wenn Bild nicht lädt) -->
 <div id="logoContainer">
-    <img src="logo-hundt-elektrosysteme.png" alt="HUNDT ELEKTROSYSTEME">
+    <img id="logoImg" src="./logo-hundt-elektrosysteme.png" alt="HUNDT ELEKTROSYSTEME"
+         onerror="var c=document.getElementById('logoContainer'); var i=document.getElementById('logoImg'); var t=document.getElementById('logoTextFallback'); if(i){ i.style.display='none'; } if(t){ t.style.display='flex'; }">
+    <div id="logoTextFallback" class="logo-text-fallback">
+        <span class="logo-hundt">HUNDT</span>
+        <span class="logo-elektrosysteme">ELEKTROSYSTEME</span>
+    </div>
 </div>
 
 <!-- Hilfe-Button oben rechts -->
